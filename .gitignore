@@ -1,0 +1,8 @@
+yarn-error.log
+.DS_Store
+.idea
+build
+build_cache
+node_modules
+package-lock.json
+.firebase
