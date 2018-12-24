@@ -1,14 +1,14 @@
 {
   "name": "bsv-satchel",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A Bitcoin SV js wallet library",
   "dependencies": {
     "bchaddrjs": "^0.2.2",
-    "bitcore-explorers": "^1.0.1",
-    "satoshi-bitcoin": "^1.0.4",
-    "qrcode-generator": "^1.4.1",
     "bip39": "^2.5.0",
-    "bsv": "^0.20.3"
+    "bitcore-explorers": "^1.0.1",
+    "bsv": "^0.20.3",
+    "qrcode-generator": "^1.4.1",
+    "satoshi-bitcoin": "^1.0.4"
   },
   "devDependencies": {
     "browserify": "^16.2.3",
