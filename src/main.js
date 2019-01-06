@@ -198,6 +198,9 @@ app.login = (wif, callback) => {
   app.call_before('login', [wif])
   localStorage.setItem('satchel.wif', wif)
   app.update_balance()
+  if (app.default_bitsocket_listener) {
+    app.bitsocket_listener = app.default_bitsocket_listener()
+  }
   if (callback) {
     callback()
   }
@@ -217,6 +220,10 @@ app.logout = (callback) => {
 
   for (const k of localstorage_keys) {
     localStorage.removeItem(k)
+  }
+
+  if (app.bitsocket_listener) {
+    app.bitsocket_listener.close()
   }
 
   if (callback) {
