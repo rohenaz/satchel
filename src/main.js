@@ -10,7 +10,10 @@ const DUST_LIMIT = 546
 const app = {}
 app.bsv = bsv
 app.fee_per_kb = 1000
-app.rpc = 'https://cashexplorer.bitcoin.com'
+app.rpc = 'https://bchsvexplorer.com'
+app.bitdb_token = '';     // enter token from https://bitdb.network/v3/dashboard
+app.bitdb_url   = 'https://bitgraph.network/q/';
+app.bitsocket_url = 'https://bitgraph.network/s/';
 
 app.update_actions_query = () =>
   app.find_all_inputs_and_outputs(app.get_address_suffix(), 100)
@@ -116,8 +119,8 @@ app.bch2sat = (bch) => sb.toSatoshi(bch) | 0
 app.to_legacy_address = (addr) => bchaddr.toLegacyAddress(addr)
 app.to_cash_address = (addr) => bchaddr.toCashAddress(addr)
 
-app.receive_address_link_url_mapper = (address) => `https://explorer.bitcoin.com/bch/address/${address}`
-app.tx_link_url_mapper = (txid) => `https://explorer.bitcoin.com/bch/tx/${txid}`
+app.receive_address_link_url_mapper = (address) => `https://bchsvexplorer.com/address/${address}`
+app.tx_link_url_mapper = (txid) => `https://bchsvexplorer.com/tx/${txid}`
 
 app.get_balance = () => +localStorage.getItem('satchel.balance')
 app.get_unconfirmed_balance = () => +localStorage.getItem('satchel.unconfirmed-balance')
