@@ -82,7 +82,8 @@ Initializes the wallet and attaches it to the page.
 | rpc | What rpc service to use for sending transactions. | | string |  https://bsvexplorer.io |
 
 | update_actions_query | Data to query bitdb with when update_actions is called. | | function | `() => find_all_inputs_and_outputs(satchel.get_address_suffix(), 100);` |
-| default_bitsocket_listener | This creates a bitsocket on login and closes on delete. Used for watching new transactions. Set to `null` if you don't want it to run. | | function | `() => {} -> EventSource (see code) ` |
+| bitsocket_listener | This creates a bitsocket on login and closes on delete. Used for watching new transactions. Set to `null` if you don't want it to run. | | function | `() => {} -> EventSource (see code) ` |
+| on_receive_callback | Called when the logged in address receives a tx. | | function | `(data) => {}` |
 
 
 ##### Example
@@ -409,7 +410,3 @@ Generates link href for an explorer.bitcoin.com tx.
 
 #### `satchel.bsv`
 You may access the `bitcore-lib-cash` library with `satchel.bsv`. See an example of this in `satchel.broadcast_tx`. You can see more examples and documentation over at https://github.com/bitpay/bitcore-lib-cash 
-
-
-#### `satchel.registered_actions_parsers`
-This is an array of functions which take a transaction to run on each transaction which is the result of the `satchel.update_actions_query` in `satchel.update_actions`. The default implementation is to create the Sent and Received templates, but this can be removed and you can do some other processing. So for example, instead of sent and received templates you could have one for comments and posts, and then show something else for those types of transactions. 

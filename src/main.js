@@ -4,7 +4,6 @@ const bsv = require('bsv')
 const sb = require('satoshi-bitcoin')
 const explorer = require('bitcore-explorers')
 const bchaddr = require('bchaddrjs')
-
 const DUST_LIMIT = 546
 
 const app = {}
