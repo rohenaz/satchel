@@ -110312,8 +110312,9 @@ app.is_logged_in = () => !!app.get_wif()
 app.get_private_key = () => new bsv.PrivateKey(app.get_wif())
 app.get_address = () => app.get_private_key().toAddress()
 app.get_address_str = () => app.get_address().toString()
-app.get_legacy_address_str = () => app.to_legacy_address(app.get_address_str())
-app.get_address_suffix = () => app.get_address_str().split('bitcoincash:')[1]
+app.get_cash_addr_str = () => app.get_address().toCashAddress()
+app.get_legacy_address_str = () => app.get_address_str()
+app.get_address_suffix = () => app.get_cash_addr_str().split('bitcoincash:')[1]
 app.get_utxos = () => JSON.parse(localStorage.getItem('satchel.utxo'))
 
 app.generate_qr_code = (address) => {
