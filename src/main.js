@@ -12,7 +12,7 @@ app.bsv = bsv
 app.fee_per_kb = 1000
 app.rpc = 'https://bchsvexplorer.com'
 app.bitdb_token = ''
-app.bitdb_url   = 'https://bitgraph.network/q/'
+app.bitdb_url = 'https://bitgraph.network/q/'
 app.bitsocket_url = 'https://bitgraph.network/s/'
 
 app.on_receive_callback = null
@@ -73,7 +73,7 @@ app.init = (options = {}) => {
 app.received_transaction = (tx, satoshis) => {
   localStorage.setItem('satchel.balance', app.get_balance() + satoshis)
 
-  app.on_receive_callback({tx: tx, satoshis: satoshis})
+  app.on_receive_callback({ tx: tx, satoshis: satoshis })
   setTimeout(() => {
     app.update_utxos()
   }, 5000)
@@ -455,8 +455,8 @@ app.find_all_inputs_and_outputs = (addr, limit) => ({
   q: {
     find: {
       '$or': [
-        {'in.e.a': addr},
-        {'out.e.a': addr}
+        { 'in.e.a': addr },
+        { 'out.e.a': addr }
       ]
     },
     limit: limit
@@ -467,7 +467,7 @@ app.find_all_outputs_without_inputs = (addr, limit) => ({
   v: 3,
   q: {
     find: {
-      'in.e.a': {'$ne': addr},
+      'in.e.a': { '$ne': addr },
       'out.e.a': addr
     }
   }
