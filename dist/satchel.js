@@ -110582,18 +110582,6 @@ app.update_utxos = (callback, err_callback) => {
 app.update_actions = (callback) => {
   app.call_before('update_actions', [])
   app.query_bitdb(app.update_actions_query(), (r) => {
-    for (const tx of r.u) {
-      for (const parser of app.registered_actions_parsers) {
-        parser(tx, false)
-      }
-    }
-
-    for (const tx of r.c) {
-      for (const parser of app.registered_actions_parsers) {
-        parser(tx, true)
-      }
-    }
-
     if (callback) {
       callback(r)
     }
