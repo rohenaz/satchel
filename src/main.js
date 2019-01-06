@@ -11,9 +11,9 @@ const app = {}
 app.bsv = bsv
 app.fee_per_kb = 1000
 app.rpc = 'https://bchsvexplorer.com'
-app.bitdb_token = '';     // enter token from https://bitdb.network/v3/dashboard
-app.bitdb_url   = 'https://bitgraph.network/q/';
-app.bitsocket_url = 'https://bitgraph.network/s/';
+app.bitdb_token = ''
+app.bitdb_url   = 'https://bitgraph.network/q/'
+app.bitsocket_url = 'https://bitgraph.network/s/'
 
 app.update_actions_query = () =>
   app.find_all_inputs_and_outputs(app.get_address_suffix(), 100)
