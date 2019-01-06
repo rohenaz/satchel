@@ -15,23 +15,28 @@ app.bitdb_token = ''
 app.bitdb_url   = 'https://bitgraph.network/q/'
 app.bitsocket_url = 'https://bitgraph.network/s/'
 
+app.on_receive_callback = null
+app.default_on_receive = (data) => {
+  console.log('received something!', data)
+}
+
 app.update_actions_query = () =>
   app.find_all_inputs_and_outputs(app.get_address_suffix(), 100)
 
 app.bitsocket_listener = null
 app.default_bitsocket_listener = () => {
-  return satchel.initialize_bitsocket_listener(
-    satchel.find_all_outputs_without_inputs(satchel.get_address_suffix(), 100),
+  return app.initialize_bitsocket_listener(
+    app.find_all_outputs_without_inputs(app.get_address_suffix(), 100),
     (r) => {
       if (r.type == 'mempool') {
-        const txid = r.data[0].tx.h
+        const tx = r.data[0]
         let sats = 0
         for (const j of r.data[0].out) {
-          if (j.e.a == satchel.get_address_suffix()) {
+          if (j.e.a == app.get_address_suffix()) {
             sats += j.e.v
           }
         }
-        satchel.received_transaction(txid, sats)
+        app.received_transaction(tx, sats)
         app.update_utxos()
         app.update_actions()
       }
@@ -65,14 +70,10 @@ app.init = (options = {}) => {
   }
 }
 
-app.received_transaction = (txid, satoshis) => {
-  app.received_amount_el.innerText = `+${app.sat2bch(satoshis)} BSV`
-  app.received_amount_el.setAttribute('href',
-    app.tx_link_url_mapper(txid)
-  )
-
+app.received_transaction = (tx, satoshis) => {
   localStorage.setItem('satchel.balance', app.get_balance() + satoshis)
 
+  app.on_receive_callback({tx: tx, satoshis: satoshis})
   setTimeout(() => {
     app.update_utxos()
   }, 5000)
@@ -199,8 +200,11 @@ app.login = (wif, callback) => {
   app.call_before('login', [wif])
   localStorage.setItem('satchel.wif', wif)
   app.update_balance()
-  if (app.default_bitsocket_listener) {
+  if (!app.bitsocket_listener) {
     app.bitsocket_listener = app.default_bitsocket_listener()
+  }
+  if (!app.on_receive_callback) {
+    app.on_receive_callback = app.default_on_receive
   }
   if (callback) {
     callback()
