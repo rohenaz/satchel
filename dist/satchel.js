@@ -107740,7 +107740,7 @@ app.default_bitsocket_listener = () => {
   )
 }
 
-app.init = (options = {}) => {
+app.init = (options = {}, callback) => {
   // overwrite any variables in app passed from options
   for (const o of Object.entries(options)) {
     app[o[0]] = o[1]
@@ -107757,6 +107757,10 @@ app.init = (options = {}) => {
         amount_sat <= app.get_balance() + app.get_unconfirmed_balance()) {
     } else {
       ret = false
+    }
+
+    if(callback) {
+      callback()
     }
 
     return ret

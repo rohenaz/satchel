@@ -59,7 +59,7 @@ See `https://blockday.cash` and `https://dtv.cash` for an examples of applicatio
 ## Methods
 
 
-#### `satchel.init(options: object)`
+#### `satchel.init(options: object, callback: function)`
 Initializes the wallet and attaches it to the page. 
 
 
@@ -87,7 +87,7 @@ Initializes the wallet and attaches it to the page.
 satchel.init({
     'bitdb_token': 'bitdb_api_key_goes_here',
     'fee_per_kb': 1337
-})
+}, walletLoaded)
 ```
 
 #### `satchel.get_address() -> bsv.Address()`
