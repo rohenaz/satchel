@@ -107752,7 +107752,7 @@ app.init = (options = {}) => {
   const check_send_validity = (val) => {
     let ret = true
 
-    const amount_sat = app.bch2sat(val)
+    const amount_sat = app.bsv2sat(val)
     if (amount_sat > 0 &&
         amount_sat <= app.get_balance() + app.get_unconfirmed_balance()) {
     } else {
@@ -108065,7 +108065,7 @@ app.update_utxos = (callback, err_callback) => {
         outputIndex: v['vout'],
         address: v['address'],
         script: v['scriptPubKey'],
-        satoshis: app.bch2sat(v['amount'])
+        satoshis: app.bsv2sat(v['amount'])
       }))
 
       utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1

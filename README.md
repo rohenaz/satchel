@@ -68,7 +68,6 @@ Initializes the wallet and attaches it to the page.
 | option | description | required | type | default|
 |--------|-------------|----------|------|--------|
 | bitdb_token | Grab this from https://bitdb.network/v3/dashboard | :heavy_check_mark: | string | |
-| append_to | Which element to append the wallet to | | string | body |
 | bitdb_url | Modify this if you are running custom bitdb instance.  | |string |  https://bitgraph.network/q/ |
 | bitsocket_url | Modify this if you are running custom bitsocket instance.  | |string |  https://bitsocket.network/q/ |
 | bitbox_url | Modify this if you are running custom bitbox instance. | |string |  https://rest.bitbox.earth/v1/ |
