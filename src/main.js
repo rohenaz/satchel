@@ -131,10 +131,10 @@ app.get_address = () => app.get_private_key().toAddress()
 app.get_address_str = () => app.get_address().toString()
 app.get_utxos = (max=5) => {
   let utxos = JSON.parse(localStorage.getItem('satchel.utxo'))
-  if(!max) return utxos
+  if (!utxos || !max) { return utxos }
   return utxos.sort((a,b) => {
-    return a.satoshis > b.satoshis ? -1 : 1}
-  ).slice(0,max)
+    return a.satoshis > b.satoshis ? -1 : 1
+  }).slice(0,max)
 }
 
 app.generate_qr_code = (address) => {
