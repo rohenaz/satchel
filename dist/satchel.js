@@ -107714,18 +107714,18 @@ app.default_on_receive = (data) => {
 }
 
 app.update_actions_query = () =>
-  app.find_all_inputs_and_outputs(app.get_address_suffix(), 100)
+  app.find_all_inputs_and_outputs(app.get_address_str(), 100)
 
 app.bitsocket_listener = null
 app.default_bitsocket_listener = () => {
   return app.initialize_bitsocket_listener(
-    app.find_all_outputs_without_inputs(app.get_address_suffix(), 100),
+    app.find_all_outputs_without_inputs(app.get_address_str(), 100),
     (r) => {
       if (r.type == 'mempool') {
         const tx = r.data[0]
         let sats = 0
         for (const j of r.data[0].out) {
-          if (j.e.a == app.get_address_suffix()) {
+          if (j.e.a == app.get_address_str()) {
             sats += j.e.v
           }
         }
@@ -108094,7 +108094,7 @@ app.update_actions = (callback) => {
   })
 }
 
-app.query_bitdb = (q, callback) => {
+app.query_bitdb = (q, callback, fail) => {
   if (app.bitdb_token === '') {
     window.alert('bitdb_token option not set')
   }
@@ -108110,7 +108110,7 @@ app.query_bitdb = (q, callback) => {
 
   fetch(url, header)
     .then((r) => r.json())
-    .then(callback)
+    .then(callback).catch(fail)
 }
 
 app.initialize_bitsocket_listener = (q, callback) => {

@@ -331,20 +331,22 @@ Find documentation for this at https://bitdb.network/
 ##### Example
 ```js
 const test_query = (addr) => ({
-    'v': 3,
-    'q': {
-        'find': {
-            'in.e.a':  addr
-        },
-        'limit': 10
-    },
-    'r': {
-        'f': '[ .[] | { block: .blk.i?, timestamp: .blk.t?, content: .out[1]?.s2 }]'
-    }
-});
+  'v': 3,
+  'q': {
+      'find': {
+          'in.e.a':  addr
+      },
+      'limit': 10
+  },
+  'r': {
+      'f': '[ .[] | { block: .blk.i?, timestamp: .blk.t?, content: .out[1]?.s2 }]'
+  }
+})
 
 satchel.query_bitdb(test_query(satchel.get_address_str()), (r) => {
-    console.log(r)
+  console.log(r)
+},(err) => {
+  console.error("Failed to query BitDB", err)
 })
 
 ```
