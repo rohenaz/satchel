@@ -107707,7 +107707,6 @@ app.rpc = 'https://bchsvexplorer.com'
 app.bitdb_token = ''
 app.bitdb_url = 'https://bitgraph.network/q/'
 app.bitsocket_url = 'https://bitgraph.network/s/'
-app.max_utxos = 5
 
 app.on_receive_callback = null
 app.default_on_receive = (data) => {
@@ -107825,7 +107824,13 @@ app.is_logged_in = () => !!app.get_wif()
 app.get_private_key = () => new bsv.PrivateKey(app.get_wif())
 app.get_address = () => app.get_private_key().toAddress()
 app.get_address_str = () => app.get_address().toString()
-app.get_utxos = () => JSON.parse(localStorage.getItem('satchel.utxo'))
+app.get_utxos = (max=5) => {
+  let utxos = JSON.parse(localStorage.getItem('satchel.utxo'))
+  if(!max) return utxos
+  return utxos.sort((a,b) => {
+    return a.satoshis > b.satoshis ? -1 : 1}
+  ).slice(0,max)
+}
 
 app.generate_qr_code = (address) => {
   app.call_before('generate_qr_code', [address])
@@ -107944,9 +107949,7 @@ app.send = (address, satoshis, callback) => {
   let tx = new bsv.Transaction()
   // a wallet can have a ton of utxos
   // consume the top 10 utxos by value
-  tx.from(app.get_utxos().sort((a,b) => {
-      return a.satoshis > b.satoshis ? -1 : 1}
-    ).slice(0,app.max_utxos))
+  tx.from(app.get_utxos())
   tx.to(address, satoshis)
   tx.feePerKb(app.fee_per_kb)
   tx.change(app.get_address())
