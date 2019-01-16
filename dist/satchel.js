@@ -107759,11 +107759,11 @@ app.init = (options = {}, callback) => {
       ret = false
     }
 
-    if(callback) {
-      callback()
-    }
-
     return ret
+  }
+
+  if(callback) {
+    callback()
   }
 }
 
