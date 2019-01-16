@@ -3,7 +3,6 @@ const bip39 = require('bip39')
 const bsv = require('bsv')
 const sb = require('satoshi-bitcoin')
 const explorer = require('bitcore-explorers')
-const bchaddr = require('bchaddrjs')
 const DUST_LIMIT = 546
 
 const app = {}
@@ -106,18 +105,15 @@ app.call_before = (method, args) => {
 }
 
 app.call_after = (method, args) => {
-  if (typeof app.after_effects[method] !== 'undefined') {
+  if (typeof app.after_effects[method] !== 'undfined') {
     for (const o of app.after_effects[method]) {
       o(...args)
     }
   }
 }
 
-app.sat2bch = (sat) => sb.toBitcoin(sat)
-app.bch2sat = (bch) => sb.toSatoshi(bch) | 0
-
-app.to_legacy_address = (addr) => bchaddr.toLegacyAddress(addr)
-app.to_cash_address = (addr) => bchaddr.toCashAddress(addr)
+app.sat2bsv = (sat) => sb.toBitcoin(sat)
+app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
 app.receive_address_link_url_mapper = (address) => `https://bchsvexplorer.com/address/${address}`
 app.tx_link_url_mapper = (txid) => `https://bchsvexplorer.com/tx/${txid}`
@@ -129,9 +125,6 @@ app.is_logged_in = () => !!app.get_wif()
 app.get_private_key = () => new bsv.PrivateKey(app.get_wif())
 app.get_address = () => app.get_private_key().toAddress()
 app.get_address_str = () => app.get_address().toString()
-app.get_cash_addr_str = () => app.get_address().toCashAddress()
-app.get_legacy_address_str = () => app.get_address_str()
-app.get_address_suffix = () => app.get_cash_addr_str().split('bitcoincash:')[1]
 app.get_utxos = () => JSON.parse(localStorage.getItem('satchel.utxo'))
 
 app.generate_qr_code = (address) => {
@@ -141,7 +134,7 @@ app.generate_qr_code = (address) => {
   const error_correction_level = 'H'
 
   const qr = qrcode(type_number, error_correction_level)
-  qr.addData(app.to_cash_address(address.toString()))
+  qr.addData(address.toString())
   qr.make()
 
   app.call_after('generate_qr_code', [address, qr])
@@ -155,7 +148,7 @@ app.generate_address = () => {
   const hash = bsv.crypto.Hash.sha256(seed)
   const bn = bsv.crypto.BN.fromBuffer(hash)
   const key = new bsv.PrivateKey(bn)
-  const address = app.to_cash_address(key.toAddress().toString())
+  const address = key.toAddress().toString()
 
   return {
     'address': address,
@@ -339,7 +332,7 @@ app.broadcast_tx = (tx, callback, err_callback, options = {
 app.update_balance = (callback, err_callback) => {
   app.call_before('update_balance', [])
 
-  app.insight.address(app.get_legacy_address_str(), (err, addr_info) => {
+  app.insight.address(app.get_address_str(), (err, addr_info) => {
     if (err) {
       if (err_callback) {
         err_callback(err)
@@ -366,7 +359,7 @@ app.update_balance = (callback, err_callback) => {
 app.update_utxos = (callback, err_callback) => {
   app.call_before('update_utxos', [])
 
-  app.insight.getUnspentUtxos(app.get_legacy_address_str(), (err, utxo_info) => {
+  app.insight.getUnspentUtxos(app.get_address_str(), (err, utxo_info) => {
     if (err) {
       if (err_callback) {
         err_callback(err)
@@ -375,7 +368,7 @@ app.update_utxos = (callback, err_callback) => {
       const utxos = JSON.parse(JSON.stringify(utxo_info)).map((v) => ({
         txId: v['txid'],
         outputIndex: v['vout'],
-        address: app.to_cash_address(v['address']),
+        address: v['address'],
         script: v['scriptPubKey'],
         satoshis: app.bch2sat(v['amount'])
       }))

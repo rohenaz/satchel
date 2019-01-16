@@ -1,23 +1,19 @@
 # Satchel Alpha
 
-Satchel is an in-browser [Bitcoin SV](https://www.bitcoinsv.org/) wallet library which is designed to be embedded into web applications to speed up development of new blockchain apps. It does not require you to run a bitcoin node or any other software on your server, deploy and configure with just Javascript. 
-
-Please note that this project is in development, has not been battle tested, and is not really designed for amounts of money you aren't ok with losing. There may be bugs or security issues with it. The codebase is intended to be small enough for you to audit yourself and determine if it is useful for your project.
+Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) wallet library. It it is designed to speed up development of new Bitcoin apps without having UI opinions. It is in essence a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software. To keep things simple, it omits support for the CashAddr address format. If you need cash address support, there is a simple conversion library you can use in conjunction with this one called `bchaddrjs`.
 
 #### Thanks to the following projects which made this possible
 
-- https://bitgraph.network/
-- https://bitsocket.org/
-- https://bitcore.io/
+- https://bitgraph.network
+- https://bitsocket.org
+- https://bitcore.io
 - https://github.com/bitcoinjs/bip39
-- https://github.com/dawsbot/satoshi-bitcoin/
+- https://github.com/dawsbot/satoshi-bitcoin
 - https://github.com/soldair/node-qrcode
 
-## Building
+## Prerequisites
 
-I recommend you use nvm https://github.com/creationix/nvm
-
-You must also have `make` installed to automate building. 
+You must have `make` installed to automate building. 
 
 
 #### Development
@@ -57,7 +53,7 @@ access from window.satchel
 
 #### Examples
 
-See `https://dailyconsensus.com` and `https://dtv.cash` for an examples of applications using Satchel. 
+See `https://blockday.cash` and `https://dtv.cash` for an examples of applications using Satchel. 
 
 
 ## Methods
@@ -73,13 +69,13 @@ Initializes the wallet and attaches it to the page.
 |--------|-------------|----------|------|--------|
 | bitdb_token | Grab this from https://bitdb.network/v3/dashboard | :heavy_check_mark: | string | |
 | append_to | Which element to append the wallet to | | string | body |
-| bitdb_url | Modify this if you are running custom bitdb instance.  | |string |  https://fountainhead.cash/q/ |
+| bitdb_url | Modify this if you are running custom bitdb instance.  | |string |  https://bitgraph.network/q/ |
 | bitsocket_url | Modify this if you are running custom bitsocket instance.  | |string |  https://bitsocket.network/q/ |
 | bitbox_url | Modify this if you are running custom bitbox instance. | |string |  https://rest.bitbox.earth/v1/ |
 | fee_per_kb | Satoshis per kilobyte for fee. |  | integer |  1000 |
 | transaction_received_pane_time | How long to show the received pane in milliseconds. |  | integer |  4800 |
 | transaction_sent_pane_time | How long to show the sent pane in milliseconds. |  | integer |  4800 |
-| rpc | What rpc service to use for sending transactions. | | string |  https://bsvexplorer.io |
+| rpc | What rpc service to use for sending transactions. | | string |  https://bchsvexplorer.io |
 
 | update_actions_query | Data to query bitdb with when update_actions is called. | | function | `() => find_all_inputs_and_outputs(satchel.get_address_suffix(), 100);` |
 | bitsocket_listener | This creates a bitsocket on login and closes on delete. Used for watching new transactions. Set to `null` if you don't want it to run. | | function | `() => {} -> EventSource (see code) ` |
@@ -90,12 +86,12 @@ Initializes the wallet and attaches it to the page.
 
 ```js
 satchel.init({
-    'bitdb_token': 'qp9rzh6levrrn5r5x4slc6q7qxhl452dty5nuyuq6m',
+    'bitdb_token': 'bitdb_api_key_goes_here',
     'fee_per_kb': 1337
-});
+})
 ```
 
-#### `satchel.get_address() -> bch.Address()`
+#### `satchel.get_address() -> bsv.Address()`
 Retrieves the Address object associated with logged in user.
 
 ##### Example
@@ -111,16 +107,7 @@ Retrieves the string representation of the logged in address. This could be used
 ##### Example
 ```js
 
-satchel.get_address_str() == 'bitcoincash:qz4xkn3wx9a04a6yvpkcz4lca5qdf0aslq50hy3v9g'
-```
-
-#### `satchel.get_address_suffix() -> string`
-Retrieves the string representation of the logged in address for bitdb queries. It is the same as `get_address_str()` with the `bitcoincash:` prefix removed.
-
-##### Example
-```js
-
-satchel.get_address_suffix() == 'qz4xkn3wx9a04a6yvpkcz4lca5qdf0aslq50hy3v9g'
+satchel.get_address_str() == '1....'
 ```
 
 #### `satchel.get_wif() -> string`
@@ -139,7 +126,7 @@ Retrieves the amount of satoshis that are confirmed for the user. You might want
 ```js
 
 if (satchel.get_balance() > 100000000) {
-    console.log('you have at least 1 bitcoin');
+    console.log('you have at least 1 bitcoin')
 }
 ```
 
@@ -150,7 +137,7 @@ Retrieves the amount of satoshis that are unconfirmed for the user.
 ```js
 
 if (satchel.get_unconfirmed_balance() == 0) {
-    console.log('you have no unconfirmed bitcoin');
+    console.log('you have no unconfirmed bitcoin')
 }
 ```
 
@@ -161,18 +148,18 @@ Retrieves the utxo set associated with an address. This is used for sending tran
 ```js
 
 for (const utxo of satchel.get_utxos()) {
-    console.log(utxo['txid']);
+    console.log(utxo['txid'])
 }
 ```
 
-#### `satchel.get_private_key() -> bch.PrivateKey()`
+#### `satchel.get_private_key() -> bsv.PrivateKey()`
 Retrieves the private key of a logged in address. This imports the WIF stored in localStorage.
 
 ##### Example
 ```js
 
 if (satchel.get_private_key().publicKey.compressed) {
-    console.log('your public key is compressed');
+    console.log('your public key is compressed')
 }
 ```
 
@@ -183,86 +170,86 @@ Checks if currently logged in.
 ```js
 
 if (! satchel.is_logged_in()) {
-    console.log('not logged in');
+    console.log('not logged in')
 }
 ```
 
-#### `satchel.send(address: bch.Address, satoshis: integer, callback: (tx) => {})`
+#### `satchel.send(address: bsv.Address, satoshis: integer, callback: (tx) => {})`
 Performs a basic transaction: to send N satoshis to an address. A callback may be provided in order to perform additional processing after the broadcast has completed.
 
 ##### Example
 ```js
 
-const address = satchel.bsv.Address.fromString('bitcoincash:qz4xkn3wx9a04a6yvpkcz4lca5qdf0aslq50hy3v9g');
-const sats = 2000;
+const address = satchel.bsv.Address.fromString('1...')
+const sats = 2000
 satchel.send(address, sats, (tx) => {
-    console.log('transaction sent');
-    console.log(tx);
-});
+    console.log('transaction sent')
+    console.log(tx)
+})
 
 ```
 
-#### `satchel.clean_tx_dust(tx: bch.Transaction) -> bch.Transaction`
+#### `satchel.clean_tx_dust(tx: bsv.Transaction) -> bsv.Transaction`
 Removes all outputs with more than 0 and less than 546 satoshis. This is a protocol limit.
 
 ##### Example
 ```js
 
-let tx = new satchel.bsv.Transaction();
-tx.from(satchel.get_utxos());
-tx = satchel.clean_tx_dust(tx);
+let tx = new satchel.bsv.Transaction()
+tx.from(satchel.get_utxos())
+tx = satchel.clean_tx_dust(tx)
 
 ```
 
-#### `satchel.add_op_return_data(tx: bch.Transaction, data: [object]) -> bch.Transaction
+#### `satchel.add_op_return_data(tx: bsv.Transaction, data: [object]) -> bsv.Transaction
 
-Adds one or more `OP_RETURN` data points. If you use this, make sure that when you call `satchel.broadcast_tx` you set safe to false as currently `bitcore-lib-cash` doesn't like the multiple `OP_RETURN` arguments. 
+Adds one or more `OP_RETURN` data points. If you use this, make sure that when you call `satchel.broadcast_tx` you set safe to false as currently `bsv` doesn't like the multiple `OP_RETURN` arguments. 
 
 To use this pass an array containing `type` and `v`. `type` may be either `hex` or `str`.
 
 ##### Example
 ```js
 
-let tx = new satchel.bsv.Transaction();
-tx.from(satchel.get_utxos());
+let tx = new satchel.bsv.Transaction()
+tx.from(satchel.get_utxos())
 tx = satchel.add_op_return_data(tx, [
     {'type': 'hex', 'v': '6d01'},
     {'type': 'str', 'v': 'testing testing'},
-]);
+])
 
 ```
 
-#### `satchel.broadcast_tx(tx: bch.Transaction, callback: (tx) => {}, safe: boolean = true)`
+#### `satchel.broadcast_tx(tx: bsv.Transaction, callback: (tx) => {}, safe: boolean = true)`
 Sends a transaction off to the network. This uses the `satchel.rpc` option to choose a server. It sends the serialized form of a transaction to a bitcoin node. A callback may be provided in order to perform additional processing after the broadcast has completed. `send` uses this internally to actually broadcast the transaction. The `safe` parameter is used to choose between safe serialization or just conversion to string. In case of using OP_RETURN you must disable safe mode, and therefore bitcore-lib-cash will not give an error on broadcast.
 
 ##### Example
 ```js
 
-const address = satchel.bsv.Address.fromString('bitcoincash:qz4xkn3wx9a04a6yvpkcz4lca5qdf0aslq50hy3v9g');
-const sats = 2000;
+const address = satchel.bsv.Address.fromString('1....')
+const sats = 2000
 
-let tx = new satchel.bsv.Transaction();
-tx.from(satchel.get_utxos());
-tx.to(address, sats);
-tx.feePerKb(satchel.fee_per_kb);
-tx.change(satchel.get_address());
-tx = satchel.clean_tx_dust(tx);
-tx.sign(satchel.get_private_key());
+let tx = new satchel.bsv.Transaction()
+tx.from(satchel.get_utxos())
+tx.to(address, sats)
+tx.feePerKb(satchel.fee_per_kb)
+tx.change(satchel.get_address())
+tx = satchel.clean_tx_dust(tx)
+tx.sign(satchel.get_private_key())
 
 satchel.broadcast_tx(tx, (tx) => {
-    console.log('transaction broadcast');
-    console.log(tx);
+    console.log('transaction broadcast')
+    console.log(tx)
 });
 ```
 
 #### `satchel.before(method: string, callback: (...) => {})`
 Registers a call to perform prior to performing a satchel method. The valid method options are:
 
-- `'generate_qr_code', (address: bch.Address) => {}`
+- `'generate_qr_code', (address: bsv.Address) => {}`
 - `'login', (wif: string) => {}`
 - `'logout', () => {}`
-- `'send', (address: bch.Address, satoshis: integer) => {}`
-- `'broadcast_tx'`, (tx: bch.Transaction) => {}
+- `'send', (address: bsv.Address, satoshis: integer) => {}`
+- `'broadcast_tx'`, (tx: bsv.Transaction) => {}
 - `'update_balance'`, () => {}
 - `'update_utxos'`, () => {}
 - `'update_actions'`, () => {}
@@ -272,18 +259,18 @@ Registers a call to perform prior to performing a satchel method. The valid meth
 ```js
 
 satchel.before('send', (address, satoshis) => {
-    console.log('sending ${satoshis} to ${address}');
-});
+    console.log('sending ${satoshis} to ${address}')
+})
 ```
 
 #### satchel.after(method: string, callback: (...) => {})
 Registers a call to perform after performing a satchel method. The valid method options are:
 
-- `'generate_qr_code', (address: bch.Address, qr: qrcode) => {}`
+- `'generate_qr_code', (address: bsv.Address, qr: qrcode) => {}`
 - `'login', (wif: string) => {}`
 - `'logout', () => {}`
-- `'send', (address: bch.Address, satoshis: integer, tx: bch.Transaction) => {}`
-- `'broadcast_tx'`, (tx: bch.Transaction) => {}
+- `'send', (address: bsv.Address, satoshis: integer, tx: bsv.Transaction) => {}`
+- `'broadcast_tx'`, (tx: bsv.Transaction) => {}
 - `'update_balance'`, () => {}
 - `'update_utxos'`, (utxos: [object]) => {}
 - `'update_actions'`, () => {}
@@ -292,8 +279,8 @@ Registers a call to perform after performing a satchel method. The valid method 
 ```js
 
 satchel.after('login', (wif) => {
-    sound_controller.play_clip('login.wav');
-});
+    sound_controller.play_clip('hello.mp3')
+})
 ```
 
 #### `satchel.update_balance(callback: (data) => {})`
@@ -311,7 +298,7 @@ And the callback receives the json from bitbox.
 ```js
 
 satchel.update_balance((data) => {
-    console.log('new balance is ${satchel.get_balance()}');
+    console.log('new balance is ${satchel.get_balance()}')
 });
 ```
 
@@ -322,7 +309,7 @@ Retrieves the utxo set for the logged in address. The callback contains the json
 ```js
 
 satchel.update_utxos((data) => {
-    console.log('you have ${satchel.get_utxos().length} utxos');
+    console.log('you have ${satchel.get_utxos().length} utxos')
 });
 ```
 
@@ -333,7 +320,7 @@ Retrieves the transactions involving an address and displays them in the actions
 ```js
 
 satchel.update_actions(() => {
-    console.log('actions updated');
+    console.log('actions updated')
 });
 
 ```
@@ -358,8 +345,8 @@ const test_query = (addr) => ({
 });
 
 satchel.query_bitdb(test_query(satchel.get_address_str()), (r) => {
-    console.log(r);
-});
+    console.log(r)
+})
 
 ```
 
@@ -372,8 +359,8 @@ Logs in with WIF string. For normal operation you will not need to call this you
 const wif = '...';
 satchel.login(wif, () => {
     // do some html stuff or something here, will run after localStorage is updated.
-    console.log('logged in');
-});
+    console.log('logged in')
+})
 ```
 
 #### `satchel.logout(callback: () => {})`
@@ -383,8 +370,8 @@ Logs out. With normal operation you will not need to call this yourself. This is
 ```js
 
 satchel.logout(() => {
-    console.log('logged out');
-});
+    console.log('logged out')
+})
 ```
 
 ## Helpers
@@ -399,14 +386,14 @@ Gets the satoshis of a bch amount like 0.1337. Use this because Javascripts numb
 
 #### `satchel.receive_address_link_url_mapper(address)`
 
-Generates link href for an explorer.bitcoin.com address.
+Generates link href for a bchsvexplorer.com address.
 
 #### `satchel.tx_link_url_mapper(txid)`
 
-Generates link href for an explorer.bitcoin.com tx.
+Generates link href for a bchsvexplorer.com tx.
 
 
 ## Special
 
 #### `satchel.bsv`
-You may access the `bitcore-lib-cash` library with `satchel.bsv`. See an example of this in `satchel.broadcast_tx`. You can see more examples and documentation over at https://github.com/bitpay/bitcore-lib-cash 
+You may access the `bsv` library with `satchel.bsv`. See an example of this in `satchel.broadcast_tx`. You can see more examples and documentation over at https://github.com/moneybutton/bsv

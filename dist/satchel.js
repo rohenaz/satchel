@@ -110384,6 +110384,8 @@ app.login = (wif, callback) => {
   app.update_balance()
   if (!app.bitsocket_listener) {
     app.bitsocket_listener = app.default_bitsocket_listener()
+  } else {
+    app.bitsocket_listener()
   }
   if (!app.on_receive_callback) {
     app.on_receive_callback = app.default_on_receive
