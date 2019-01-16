@@ -107740,13 +107740,13 @@ app.default_bitsocket_listener = () => {
   )
 }
 
-app.init = (options = {}, callback) => {
+app.init = async (options = {}, callback) => {
   // overwrite any variables in app passed from options
   for (const o of Object.entries(options)) {
     app[o[0]] = o[1]
   }
 
-  app.insight = new explorer.Insight(app.rpc)
+  app.insight = await new explorer.Insight(app.rpc)
 
   // takes bsv value
   const check_send_validity = (val) => {
@@ -107941,7 +107941,11 @@ app.send = (address, satoshis, callback) => {
   }
 
   let tx = new bsv.Transaction()
-  tx.from(app.get_utxos())
+  // a wallet can have a ton of utxos
+  // consume the top 10 utxos by value
+  tx.from(app.get_utxos().sort((a,b) => {
+      return a.satoshis > b.satoshis ? -1 : 1}
+    ).slice(0,10))
   tx.to(address, satoshis)
   tx.feePerKb(app.fee_per_kb)
   tx.change(app.get_address())
