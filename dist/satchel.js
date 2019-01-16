@@ -107707,6 +107707,7 @@ app.rpc = 'https://bchsvexplorer.com'
 app.bitdb_token = ''
 app.bitdb_url = 'https://bitgraph.network/q/'
 app.bitsocket_url = 'https://bitgraph.network/s/'
+app.max_utxos = 5
 
 app.on_receive_callback = null
 app.default_on_receive = (data) => {
@@ -107945,7 +107946,7 @@ app.send = (address, satoshis, callback) => {
   // consume the top 10 utxos by value
   tx.from(app.get_utxos().sort((a,b) => {
       return a.satoshis > b.satoshis ? -1 : 1}
-    ).slice(0,10))
+    ).slice(0,app.max_utxos))
   tx.to(address, satoshis)
   tx.feePerKb(app.fee_per_kb)
   tx.change(app.get_address())

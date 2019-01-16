@@ -75,7 +75,7 @@ Initializes the wallet and attaches it to the page.
 | transaction_received_pane_time | How long to show the received pane in milliseconds. |  | integer |  4800 |
 | transaction_sent_pane_time | How long to show the sent pane in milliseconds. |  | integer |  4800 |
 | rpc | What rpc service to use for sending transactions. | | string |  https://bchsvexplorer.io |
-
+| max_utxos | the maximum number of utxos to consume when sending a transaction. Prevents the tx from becoming too large to broadcast since some endpoints will have a maximum request size. | integer | 5 |
 | update_actions_query | Data to query bitdb with when update_actions is called. | | function | `() => find_all_inputs_and_outputs(satchel.get_address_suffix(), 100);` |
 | bitsocket_listener | This creates a bitsocket on login and closes on delete. Used for watching new transactions. Set to `null` if you don't want it to run. | | function | `() => {} -> EventSource (see code) ` |
 | on_receive_callback | Called when the logged in address receives a tx. | | function | `(data) => {}` |
