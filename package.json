@@ -1,6 +1,6 @@
 {
   "name": "bsv-satchel",
-  "version": "0.0.18",
+  "version": "0.1.0",
   "description": "A Bitcoin SV js wallet library",
   "dependencies": {
     "bip39": "^2.5.0",
@@ -17,6 +17,17 @@
   "main": "./dist/satchel.min.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "standard": {
+    "globals": [
+      "localStorage",
+      "fetch",
+      "btoa",
+      "EventSource"
+    ],
+    "rules": {
+      "no-template-curly-in-string": "off"
+    }
   },
   "author": "Satchmo",
   "license": "MIT"

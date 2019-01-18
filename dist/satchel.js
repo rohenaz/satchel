@@ -107698,46 +107698,60 @@ const bip39 = require('bip39')
 const bsv = require('bsv')
 const sb = require('satoshi-bitcoin')
 const explorer = require('bitcore-explorers')
-const DUST_LIMIT = 546
+const dustLimit = 546
 
 const app = {}
 app.bsv = bsv
-app.fee_per_kb = 1000
+app.feePerKb = 1000
 app.rpc = 'https://bchsvexplorer.com'
-app.bitdb_token = ''
-app.bitdb_url = 'https://bitgraph.network/q/'
-app.bitsocket_url = 'https://bitgraph.network/s/'
+app.bitdbToken = ''
+app.bitdbUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
+// Todo - change this to a chronos endpoint
+// this must be set to enable bitsocket
+app.bitsocketUrl = 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/'
+app.debug = false
 
-app.on_receive_callback = null
-app.default_on_receive = (data) => {
-  console.log('received something!', data)
-}
+// this must be set to enable bitsocket
+app.bitsocketCallback = null
+app.socket = null
+// pass a callback to init
+// wallet listens to socket on login
+// fires the callback when anything is received
+app.bitsocketListener = (callback = app.bitsocketCallback) => {
+  if (!app.bitsocketUrl) { console.error('Error: bitsocketUrl is not defined') }
+  if (!app.bitsocketCallback) { console.error('Error: bitsocketCallback is not defined') }
 
-app.update_actions_query = () =>
-  app.find_all_inputs_and_outputs(app.get_address_str(), 100)
+  const q = app.monitorAddressQuery(app.getAddressStr(), 100)
+  const b64 = btoa(JSON.stringify(q))
+  const url = app.bitsocketUrl + b64
 
-app.bitsocket_listener = null
-app.default_bitsocket_listener = () => {
-  return app.initialize_bitsocket_listener(
-    app.find_all_outputs_without_inputs(app.get_address_str(), 100),
-    (r) => {
-      if (r.type == 'mempool') {
-        const tx = r.data[0]
-        let sats = 0
-        for (const j of r.data[0].out) {
-          if (j.e.a == app.get_address_str()) {
-            sats += j.e.v
-          }
+  if (app.debug) {
+    console.info('Satchel: Initialized bitsocket listener. URL', app.bitsocketUrl, 'query:', q)
+  }
+
+  app.socket = new EventSource(url)
+  app.socket.onmessage = (e) => {
+    let r = JSON.parse(e.data)
+
+    if (app.debug) {
+      console.info('Satchel:Bitsocket message', r)
+    }
+
+    if (r.type === 'mempool') {
+      // const tx = r.data[0]
+      let sats = 0
+      for (const out of r.data[0].out) {
+        if (out.e.a === app.getAddressStr()) {
+          sats += out.e.v
+          localStorage.setItem('satchel.balance', app.getBalance() + sats)
+          setTimeout(() => {
+            app.updateUtxos()
+          }, 5000)
         }
-        app.received_transaction(tx, sats)
-        app.update_utxos()
-        app.update_actions()
-      }
-      if (r.type == 'block') {
-        app.update_actions()
       }
     }
-  )
+    callback(r)
+  }
 }
 
 app.init = async (options = {}, callback) => {
@@ -107748,64 +107762,46 @@ app.init = async (options = {}, callback) => {
 
   app.insight = await new explorer.Insight(app.rpc)
 
-  // takes bsv value
-  const check_send_validity = (val) => {
-    let ret = true
-
-    const amount_sat = app.bsv2sat(val)
-    if (amount_sat > 0 &&
-        amount_sat <= app.get_balance() + app.get_unconfirmed_balance()) {
-    } else {
-      ret = false
-    }
-
-    return ret
+  if (app.isLoggedIn()) {
+    console.info('Logged in via localStorage')
+    app.bitsocketListener()
   }
 
-  if(callback) {
+  if (callback) {
     callback()
   }
 }
 
-app.received_transaction = (tx, satoshis) => {
-  localStorage.setItem('satchel.balance', app.get_balance() + satoshis)
-
-  app.on_receive_callback({ tx: tx, satoshis: satoshis })
-  setTimeout(() => {
-    app.update_utxos()
-  }, 5000)
-}
-
-app.before_effects = {}
-app.after_effects = {}
+app.beforeEffects = {}
+app.afterEffects = {}
 
 app.before = (method, callback) => {
-  if (typeof app.before_effects[method] === 'undefined') {
-    app.before_effects[method] = []
+  if (typeof app.beforeEffects[method] === 'undefined') {
+    app.beforeEffects[method] = []
   }
 
-  app.before_effects[method].push(callback)
+  app.beforeEffects[method].push(callback)
 }
 
 app.after = (method, callback) => {
-  if (typeof app.after_effects[method] === 'undefined') {
-    app.after_effects[method] = []
+  if (typeof app.afterEffects[method] === 'undefined') {
+    app.afterEffects[method] = []
   }
 
-  app.after_effects[method].push(callback)
+  app.afterEffects[method].push(callback)
 }
 
-app.call_before = (method, args) => {
-  if (typeof app.before_effects[method] !== 'undefined') {
-    for (const o of app.before_effects[method]) {
+app.callBefore = (method, args) => {
+  if (typeof app.beforeEffects[method] !== 'undefined') {
+    for (const o of app.beforeEffects[method]) {
       o(...args)
     }
   }
 }
 
-app.call_after = (method, args) => {
-  if (typeof app.after_effects[method] !== 'undfined') {
-    for (const o of app.after_effects[method]) {
+app.callAfter = (method, args) => {
+  if (typeof app.afterEffects[method] !== 'undefined') {
+    for (const o of app.afterEffects[method]) {
       o(...args)
     }
   }
@@ -107814,40 +107810,40 @@ app.call_after = (method, args) => {
 app.sat2bsv = (sat) => sb.toBitcoin(sat)
 app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
-app.receive_address_link_url_mapper = (address) => `https://bchsvexplorer.com/address/${address}`
-app.tx_link_url_mapper = (txid) => `https://bchsvexplorer.com/tx/${txid}`
+app.receiveAddressLinkUrlMapper = (address) => `https://bchsvexplorer.com/address/${address}`
+app.txLinkUrlMapper = (txid) => `https://bchsvexplorer.com/tx/${txid}`
 
-app.get_balance = () => +localStorage.getItem('satchel.balance')
-app.get_unconfirmed_balance = () => +localStorage.getItem('satchel.unconfirmed-balance')
-app.get_wif = () => localStorage.getItem('satchel.wif')
-app.is_logged_in = () => !!app.get_wif()
-app.get_private_key = () => new bsv.PrivateKey(app.get_wif())
-app.get_address = () => app.get_private_key().toAddress()
-app.get_address_str = () => app.get_address().toString()
-app.get_utxos = (max=5) => {
+app.getBalance = () => +localStorage.getItem('satchel.balance')
+app.getUnconfirmedBalance = () => +localStorage.getItem('satchel.unconfirmed-balance')
+app.getWif = () => localStorage.getItem('satchel.wif')
+app.isLoggedIn = () => !!app.getWif()
+app.getPrivateKey = () => new bsv.PrivateKey(app.getWif())
+app.getAddress = () => app.getPrivateKey().toAddress()
+app.getAddressStr = () => app.getAddress().toString()
+app.getUtxos = (max = 5) => {
   let utxos = JSON.parse(localStorage.getItem('satchel.utxo'))
   if (!utxos || !max) { return utxos }
-  return utxos.sort((a,b) => {
+  return utxos.sort((a, b) => {
     return a.satoshis > b.satoshis ? -1 : 1
-  }).slice(0,max)
+  }).slice(0, max)
 }
 
-app.generate_qr_code = (address) => {
-  app.call_before('generate_qr_code', [address])
+app.generateQrCode = (address) => {
+  app.callBefore('generateQrCode', [address])
 
-  const type_number = 0
-  const error_correction_level = 'H'
+  const typeNumber = 0
+  const errorCorrectionLevel = 'H'
 
-  const qr = qrcode(type_number, error_correction_level)
+  const qr = qrcode(typeNumber, errorCorrectionLevel)
   qr.addData(address.toString())
   qr.make()
 
-  app.call_after('generate_qr_code', [address, qr])
+  app.callAfter('generateQrCode', [address, qr])
 
   return qr
 }
 
-app.generate_address = () => {
+app.generateAddress = () => {
   const mnemonic = bip39.generateMnemonic()
   const seed = bip39.mnemonicToSeed(mnemonic)
   const hash = bsv.crypto.Hash.sha256(seed)
@@ -107861,7 +107857,7 @@ app.generate_address = () => {
   }
 }
 
-app.import_mnemonic = (mnemonic) => {
+app.importMnemonic = (mnemonic) => {
   if (!bip39.validateMnemonic(mnemonic)) {
     window.alert('Invalid mnemonic')
     return false
@@ -107876,16 +107872,16 @@ app.import_mnemonic = (mnemonic) => {
   return wif
 }
 
-app.import_wif = (wif) => {
+app.importWif = (wif) => {
   // todo: allow uncompressed wifs
   // todo: perform better checking of validity
 
-  if (wif.length != 52) {
+  if (wif.length !== 52) {
     window.alert('WIF length must be 52')
     return false
   }
 
-  if (wif[0] != 'K' && wif[0] != 'L') {
+  if (wif[0] !== 'K' && wif[0] !== 'L') {
     window.alert('WIF must start with either a K or an L')
     return false
   }
@@ -107894,51 +107890,50 @@ app.import_wif = (wif) => {
 }
 
 app.login = (wif, callback) => {
-  app.call_before('login', [wif])
+  app.callBefore('login', [wif])
   localStorage.setItem('satchel.wif', wif)
-  app.update_balance()
-  if (!app.bitsocket_listener) {
-    app.bitsocket_listener = app.default_bitsocket_listener()
+  app.updateBalance()
+  if (app.debug) {
+    console.info('Satchel: Logged in')
   }
-  if (!app.on_receive_callback) {
-    app.on_receive_callback = app.default_on_receive
-  }
+  if (!app.socket) { app.bitsocketListener() }
+
   if (callback) {
     callback()
   }
 
-  app.call_after('login', [wif])
+  app.callAfter('login', [wif])
 }
 
 app.logout = (callback) => {
-  app.call_before('logout', [])
+  app.callBefore('logout', [])
 
-  const localstorage_keys = []
+  const localstorageKeys = []
   for (let i = 0; i < localStorage.length; ++i) {
-    if (localStorage.key(i).substring(0, 7) == 'satchel') {
-      localstorage_keys.push(localStorage.key(i))
+    if (localStorage.key(i).substring(0, 7) === 'satchel') {
+      localstorageKeys.push(localStorage.key(i))
     }
   }
 
-  for (const k of localstorage_keys) {
+  for (const k of localstorageKeys) {
     localStorage.removeItem(k)
   }
 
-  if (app.bitsocket_listener) {
-    app.bitsocket_listener.close()
+  if (app.socket) {
+    app.socket.close()
   }
 
   if (callback) {
     callback()
   }
 
-  app.call_after('logout', [])
+  app.callAfter('logout', [])
 }
 
 app.send = (address, satoshis, callback) => {
-  app.call_before('send', [address, satoshis])
+  app.callBefore('send', [address, satoshis])
 
-  if (!app.is_logged_in()) {
+  if (!app.isLoggedIn()) {
     throw new Error('satchel: sending without being logged in')
   }
 
@@ -107949,26 +107944,26 @@ app.send = (address, satoshis, callback) => {
   let tx = new bsv.Transaction()
   // a wallet can have a ton of utxos
   // consume the top 10 utxos by value
-  tx.from(app.get_utxos())
+  tx.from(app.getUtxos())
   tx.to(address, satoshis)
-  tx.feePerKb(app.fee_per_kb)
-  tx.change(app.get_address())
+  tx.feePerKb(app.feePerKb)
+  tx.change(app.getAddress())
 
-  tx = app.clean_tx_dust(tx)
-  tx.sign(app.get_private_key())
+  tx = app.cleanTxDust(tx)
+  tx.sign(app.getPrivateKey())
 
-  app.broadcast_tx(tx, (tx) => {
+  app.broadcastTx(tx, (tx) => {
     if (callback) {
       callback(tx)
     }
   })
 
-  app.call_after('send', [address, satoshis, tx])
+  app.callAfter('send', [address, satoshis, tx])
 }
 
-app.clean_tx_dust = (tx) => {
+app.cleanTxDust = (tx) => {
   for (let i = 0; i < tx.outputs.length; ++i) {
-    if (tx.outputs[i]._satoshis > 0 && tx.outputs[i]._satoshis < DUST_LIMIT) {
+    if (tx.outputs[i]._satoshis > 0 && tx.outputs[i]._satoshis < dustLimit) {
       tx.outputs.splice(i, 1)
       --i
     }
@@ -107977,15 +107972,15 @@ app.clean_tx_dust = (tx) => {
   return tx
 }
 
-app.add_op_return_data = (tx, data) => {
+app.addOpReturnData = (tx, data) => {
   const script = new bsv.Script()
 
   script.add(bsv.Opcode.OP_RETURN)
 
   for (const m of data) {
-    if (m['type'] == 'hex') {
+    if (m['type'] === 'hex') {
       script.add(Buffer.from(m['v'], 'hex'))
-    } else if (m['type'] == 'str') {
+    } else if (m['type'] === 'str') {
       script.add(Buffer.from(m['v']))
     } else {
       throw new Error('unknown data type')
@@ -108000,17 +107995,17 @@ app.add_op_return_data = (tx, data) => {
   return tx
 }
 
-app.broadcast_tx = (tx, callback, err_callback, options = {
+app.broadcastTx = (tx, callback, errCallback, options = {
   safe: true, // check serialization
   testing: false // if true dont actually broadcast to network
 }) => {
-  app.call_before('broadcast_tx', [tx])
+  app.callBefore('broadcastTx', [tx])
 
-  let tx_data = ''
+  let txData = ''
   if (options.safe) {
-    tx_data = tx.serialize()
+    txData = tx.serialize()
   } else {
-    tx_data = tx.uncheckedSerialize()
+    txData = tx.uncheckedSerialize()
   }
 
   if (options.testing) {
@@ -108018,61 +108013,61 @@ app.broadcast_tx = (tx, callback, err_callback, options = {
       callback(tx)
     }
 
-    app.call_after('broadcast_tx', [tx])
+    app.callAfter('broadcastTx', [tx])
   } else {
-    app.insight.broadcast(tx_data, (err, res) => {
+    app.insight.broadcast(txData, (err, res) => {
       if (err) {
-        if (err_callback) {
-          err_callback(err)
+        if (errCallback) {
+          errCallback(err)
         }
       } else {
         if (callback) {
           callback(tx)
         }
 
-        app.call_after('broadcast_tx', [tx])
+        app.callAfter('broadcastTx', [tx])
       }
     })
   }
 }
 
-app.update_balance = (callback, err_callback) => {
-  app.call_before('update_balance', [])
+app.updateBalance = (callback, errCallback) => {
+  app.callBefore('updateBalance', [])
 
-  app.insight.address(app.get_address_str(), (err, addr_info) => {
+  app.insight.address(app.getAddressStr(), (err, addrInfo) => {
     if (err) {
-      if (err_callback) {
-        err_callback(err)
+      if (errCallback) {
+        errCallback(err)
       }
     } else {
       localStorage.setItem('satchel.balance',
-        addr_info['balance'])
+        addrInfo['balance'])
       localStorage.setItem('satchel.unconfirmed-balance',
-        addr_info['unconfirmedBalance'])
+        addrInfo['unconfirmedBalance'])
       localStorage.setItem('satchel.total-sent',
-        addr_info['totalSent'])
+        addrInfo['totalSent'])
       localStorage.setItem('satchel.total-received',
-        addr_info['totalReceived'])
+        addrInfo['totalReceived'])
 
       if (callback) {
-        callback(addr_info)
+        callback(addrInfo)
       }
 
-      app.call_after('update_balance', [])
+      app.callAfter('updateBalance', [])
     }
   })
 }
 
-app.update_utxos = (callback, err_callback) => {
-  app.call_before('update_utxos', [])
+app.updateUtxos = (callback, errCallback) => {
+  app.callBefore('updateUtxos', [])
 
-  app.insight.getUnspentUtxos(app.get_address_str(), (err, utxo_info) => {
+  app.insight.getUnspentUtxos(app.getAddressStr(), (err, utxoInfo) => {
     if (err) {
-      if (err_callback) {
-        err_callback(err)
+      if (errCallback) {
+        errCallback(err)
       }
     } else {
-      const utxos = JSON.parse(JSON.stringify(utxo_info)).map((v) => ({
+      const utxos = JSON.parse(JSON.stringify(utxoInfo)).map((v) => ({
         txId: v['txid'],
         outputIndex: v['vout'],
         address: v['address'],
@@ -108086,37 +108081,24 @@ app.update_utxos = (callback, err_callback) => {
 
       localStorage.setItem('satchel.utxo', JSON.stringify(utxos))
 
-      if (callback) {
-        callback(utxo_info)
-      }
+      if (callback) { callback(utxoInfo) }
 
-      app.call_after('update_utxos', [utxos])
+      app.callAfter('updateUtxos', [utxos])
     }
   })
 }
 
-app.update_actions = (callback) => {
-  app.call_before('update_actions', [])
-  app.query_bitdb(app.update_actions_query(), (r) => {
-    if (callback) {
-      callback(r)
-    }
-
-    app.call_after('update_actions', [])
-  })
-}
-
-app.query_bitdb = (q, callback, fail) => {
-  if (app.bitdb_token === '') {
-    window.alert('bitdb_token option not set')
+app.queryBitdb = (q, callback, fail) => {
+  if (app.bitdbToken === '') {
+    window.alert('bitdbToken option not set')
   }
 
   const b64 = btoa(JSON.stringify(q))
-  const url = app.bitdb_url + b64
+  const url = app.bitdbUrl + b64
 
   const header = {
     headers: {
-      key: app.bitdb_token
+      key: app.bitdbToken
     }
   }
 
@@ -108125,19 +108107,8 @@ app.query_bitdb = (q, callback, fail) => {
     .then(callback).catch(fail)
 }
 
-app.initialize_bitsocket_listener = (q, callback) => {
-  const b64 = btoa(JSON.stringify(q))
-  const url = app.bitsocket_url + b64
-
-  const socket = new EventSource(url)
-  socket.onmessage = (e) => {
-    callback(JSON.parse(e.data))
-  }
-
-  return socket
-}
-
-app.find_all_inputs_and_outputs = (addr, limit) => ({
+// BitDB / BitSocket queries for monitoring logged in address
+app.monitorAddressQuery = (addr, limit) => ({
   v: 3,
   q: {
     find: {
@@ -108147,16 +108118,6 @@ app.find_all_inputs_and_outputs = (addr, limit) => ({
       ]
     },
     limit: limit
-  }
-})
-
-app.find_all_outputs_without_inputs = (addr, limit) => ({
-  v: 3,
-  q: {
-    find: {
-      'in.e.a': { '$ne': addr },
-      'out.e.a': addr
-    }
   }
 })
 
