@@ -107737,10 +107737,10 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
       console.info('Satchel:Bitsocket message', r)
     }
 
-    if (r.type === 'mempool') {
-      // const tx = r.data[0]
+    if (r.type === 't') {
+      const tx = r.data[0]
       let sats = 0
-      for (const out of r.data[0].out) {
+      for (const out of tx.out) {
         if (out.e.a === app.getAddressStr()) {
           sats += out.e.v
           localStorage.setItem('satchel.balance', app.getBalance() + sats)
