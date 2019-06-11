@@ -1,6 +1,6 @@
 # Satchel Alpha
 
-Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) wallet library. It it is designed to speed up development of new Bitcoin apps without having UI opinions. It is in essence a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software. To keep things simple, it omits support for the CashAddr address format. If you need cash address support, there is a simple conversion library you can use in conjunction with this one called `bchaddrjs`.
+Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) wallet library. It it is designed to speed up development of new Bitcoin apps without having UI opinions. It is in essence a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software.
 
 #### Thanks to the following projects which made this possible
 
@@ -13,37 +13,24 @@ Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://
 
 ## Prerequisites
 
-You must have `make` installed to automate building. 
+You need npm or yarn installed. 
 
-
-#### Development
+#### Install
 
 ```bash
-nvm use node
-npm install -g browserify
-npm install -g uglify-es
-npm install
-make
+yarn
 ```
 
-
-#### Release
-
-```bash
-make release
-```
-
-#### Linting
+#### Build
 
 ```bash
-make lint
+yarn build
 ```
 
 #importing
 
-```vue
+```js
 import Satchel from 'bsv-satchel'
-Vue.use(Satchel)
 ```
 
 ```html
@@ -70,7 +57,6 @@ Initializes the wallet and attaches it to the page.
 | bitdb_token | Grab this from https://bitdb.network/v3/dashboard | :heavy_check_mark: | string | |
 | bitdb_url | Modify this if you are running custom bitdb instance.  | |string |  https://bitgraph.network/q/ |
 | bitsocket_url | Modify this if you are running custom bitsocket instance.  | |string |  https://bitsocket.network/q/ |
-| bitbox_url | Modify this if you are running custom bitbox instance. | |string |  https://rest.bitbox.earth/v1/ |
 | fee_per_kb | Satoshis per kilobyte for fee. |  | integer |  1000 |
 | transaction_received_pane_time | How long to show the received pane in milliseconds. |  | integer |  4800 |
 | transaction_sent_pane_time | How long to show the sent pane in milliseconds. |  | integer |  4800 |
@@ -97,16 +83,16 @@ Retrieves the Address object associated with logged in user.
 
 ```js
 
-satchel.get_address().network.name == 'livenet'
+satchel.getAddress().network.name == 'livenet'
 ```
 
-#### `satchel.get_address_str() -> string`
+#### `satchel.getAddressStr() -> string`
 Retrieves the string representation of the logged in address. This could be used to look up on an explorer website. 
 
 ##### Example
 ```js
 
-satchel.get_address_str() == '1....'
+satchel.getAddressStr() == '1....'
 ```
 
 #### `satchel.get_wif() -> string`
@@ -118,7 +104,7 @@ Retrieves the "Wallet import format" of a private key. This is stored in localSt
 console.log(`don't share this with anyone: ${satchel.get_wif()}`)
 ```
 
-#### `satchel.get_balance() -> integer`
+#### `satchel.getBalance() -> integer`
 Retrieves the amount of satoshis that are confirmed for the user. You might want to combine this and the unconfirmed balance to get the "full" balance, but this depends on the application.
 
 ##### Example
@@ -200,7 +186,7 @@ tx = satchel.clean_tx_dust(tx)
 
 ```
 
-#### `satchel.add_op_return_data(tx: bsv.Transaction, data: [object]) -> bsv.Transaction
+#### `satchel.addOpReturnData(tx: bsv.Transaction, data: [object]) -> bsv.Transaction
 
 Adds one or more `OP_RETURN` data points. If you use this, make sure that when you call `satchel.broadcast_tx` you set safe to false as currently `bsv` doesn't like the multiple `OP_RETURN` arguments. 
 
@@ -291,7 +277,7 @@ Retrieves the logged in addresses balance and updates localStorage, these values
 - `satchel-wallet.total-sent`
 - `satchel-wallet.total-received`
 
-And the callback receives the json from bitbox.
+And the callback receives the json response.
 
 ##### Example
 ```js
@@ -302,7 +288,7 @@ satchel.update_balance((data) => {
 ```
 
 #### `satchel.update_utxos(callback: (data) => {})`
-Retrieves the utxo set for the logged in address. The callback contains the json from bitbox. 
+Retrieves the utxo set for the logged in address. The callback contains the json response.
 
 ##### Example
 ```js

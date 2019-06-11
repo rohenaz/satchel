@@ -1,6 +1,7 @@
 const qrcode = require('qrcode-generator')
-const bip39 = require('bip39')
+
 const bsv = require('bsv')
+const mnemonic = require('bsv/mnemonic')
 const sb = require('satoshi-bitcoin')
 const explorer = require('bitcore-explorers')
 const dustLimit = 546
@@ -8,10 +9,10 @@ const dustLimit = 546
 const app = {}
 app.bsv = bsv
 app.feePerKb = 1000
-app.rpc = 'https://bchsvexplorer.com'
-app.bitdbToken = ''
-app.bitdbUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
-// Todo - change this to a chronos endpoint
+app.rpc = 'https://api.bitindex.network'
+app.planariaApiKey = ''
+app.planariaUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
+
 // this must be set to enable bitsocket
 app.bitsocketUrl = 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/'
 app.debug = false
@@ -19,6 +20,7 @@ app.debug = false
 // this must be set to enable bitsocket
 app.bitsocketCallback = null
 app.socket = null
+
 // pass a callback to init
 // wallet listens to socket on login
 // fires the callback when anything is received
@@ -59,22 +61,37 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
   }
 }
 
+app.estimateFee = (tx) => {
+  tx.fee(defaults.fee).change(address)
+  if (options.pay && options.pay.fee) {
+    tx.fee(options.pay.fee)
+  } else {
+    var estSize=Math.ceil(tx._estimateSize()*1.4)
+    tx.fee(estSize)
+  }
+}
+
 app.init = async (options = {}, callback) => {
+
   // overwrite any variables in app passed from options
   for (const o of Object.entries(options)) {
     app[o[0]] = o[1]
   }
 
-  app.insight = await new explorer.Insight(app.rpc)
+  try {
+    app.insight = await new explorer.Insight(app.rpc)
+  } catch (e) {
+    return new Error('Failed getting insight', e)
+  }
 
   if (app.isLoggedIn()) {
-    console.info('Logged in via localStorage')
     app.bitsocketListener()
   }
 
   if (callback) {
     callback()
   }
+
 }
 
 app.beforeEffects = {}
@@ -115,8 +132,8 @@ app.callAfter = (method, args) => {
 app.sat2bsv = (sat) => sb.toBitcoin(sat)
 app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
-app.receiveAddressLinkUrlMapper = (address) => `https://bchsvexplorer.com/address/${address}`
-app.txLinkUrlMapper = (txid) => `https://bchsvexplorer.com/tx/${txid}`
+app.receiveAddressLinkUrlMapper = (address) => `https://whatsonchain.com/address/${address}`
+app.txLinkUrlMapper = (txid) => `https://whatsonchain.com/tx/${txid}`
 
 app.getBalance = () => +localStorage.getItem('satchel.balance')
 app.getUnconfirmedBalance = () => +localStorage.getItem('satchel.unconfirmed-balance')
@@ -126,7 +143,8 @@ app.getPrivateKey = () => new bsv.PrivateKey(app.getWif())
 app.getAddress = () => app.getPrivateKey().toAddress()
 app.getAddressStr = () => app.getAddress().toString()
 app.getUtxos = (max = 5) => {
-  let utxos = JSON.parse(localStorage.getItem('satchel.utxo'))
+  let utxos = JSON.parse(localStorage.getItem('satchel.utxo') || '[]')
+
   if (!utxos || !max) { return utxos }
   return utxos.sort((a, b) => {
     return a.satoshis > b.satoshis ? -1 : 1
@@ -149,9 +167,7 @@ app.generateQrCode = (address) => {
 }
 
 app.generateAddress = () => {
-  const mnemonic = bip39.generateMnemonic()
-  const seed = bip39.mnemonicToSeed(mnemonic)
-  const hash = bsv.crypto.Hash.sha256(seed)
+  const hash = bsv.crypto.Hash.sha256(mnemonic.fromRandom().toSeed())
   const bn = bsv.crypto.BN.fromBuffer(hash)
   const key = new bsv.PrivateKey(bn)
   const address = key.toAddress().toString()
@@ -162,17 +178,21 @@ app.generateAddress = () => {
   }
 }
 
-app.importMnemonic = (mnemonic) => {
-  if (!bip39.validateMnemonic(mnemonic)) {
-    window.alert('Invalid mnemonic')
-    return false
+app.importMnemonic = (passphrase) => {
+  if (!mnemonic.isValid(passphrase)) {
+   window.alert('Invalid mnemonic')
+   return false
   }
 
-  const seed = bip39.mnemonicToSeed(mnemonic)
-  const hash = bsv.crypto.Hash.sha256(seed)
+  const importedMnemonic = mnemonic.fromString(passphrase)
+  const hash = bsv.crypto.Hash.sha256(importedMnemonic.toSeed())
   const bn = bsv.crypto.BN.fromBuffer(hash)
   const key = new bsv.PrivateKey(bn)
+
+  // const hdPrivateKey = seed.toHDPrivateKey()
+  // console.log('hdkey', hdPrivateKey)
   const wif = key.toWIF()
+  console.log('wif', wif)
 
   return wif
 }
@@ -198,6 +218,7 @@ app.login = (wif, callback) => {
   app.callBefore('login', [wif])
   localStorage.setItem('satchel.wif', wif)
   app.updateBalance()
+  app.updateUtxos()
   if (app.debug) {
     console.info('Satchel: Logged in')
   }
@@ -337,7 +358,7 @@ app.broadcastTx = (tx, callback, errCallback, options = {
 }
 
 app.updateBalance = (callback, errCallback) => {
-  app.callBefore('updateBalance', [])
+  app.callBefore('updateBalance', [app.getBalance()])
 
   app.insight.address(app.getAddressStr(), (err, addrInfo) => {
     if (err) {
@@ -358,7 +379,7 @@ app.updateBalance = (callback, errCallback) => {
         callback(addrInfo)
       }
 
-      app.callAfter('updateBalance', [])
+      app.callAfter('updateBalance', [app.getBalance()])
     }
   })
 }
@@ -393,17 +414,17 @@ app.updateUtxos = (callback, errCallback) => {
   })
 }
 
-app.queryBitdb = (q, callback, fail) => {
-  if (app.bitdbToken === '') {
-    window.alert('bitdbToken option not set')
+app.queryPlanaria = (q, callback, fail) => {
+  if (app.planariaApiKey === '') {
+    window.alert('planariaApiKey option not set')
   }
 
   const b64 = btoa(JSON.stringify(q))
-  const url = app.bitdbUrl + b64
+  const url = app.planariaUrl + b64
 
   const header = {
     headers: {
-      key: app.bitdbToken
+      key: app.planariaApiKey
     }
   }
 
@@ -412,7 +433,7 @@ app.queryBitdb = (q, callback, fail) => {
     .then(callback).catch(fail)
 }
 
-// BitDB / BitSocket queries for monitoring logged in address
+// Planarium + BitSocket queries for monitoring logged in address
 app.monitorAddressQuery = (addr, limit) => ({
   v: 3,
   q: {

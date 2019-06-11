@@ -6,3 +6,5 @@ build_cache
 node_modules
 package-lock.json
 .firebase
+test
+NOTES.md
