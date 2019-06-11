@@ -41,7 +41,7 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
     let r = JSON.parse(e.data)
 
     if (app.debug) {
-      console.info('Satchel:Bitsocket message', r)
+      console.info('Satchel: Bitsocket message', r)
     }
 
     if (r.type === 't') {
@@ -189,10 +189,7 @@ app.importMnemonic = (passphrase) => {
   const bn = bsv.crypto.BN.fromBuffer(hash)
   const key = new bsv.PrivateKey(bn)
 
-  // const hdPrivateKey = seed.toHDPrivateKey()
-  // console.log('hdkey', hdPrivateKey)
   const wif = key.toWIF()
-  console.log('wif', wif)
 
   return wif
 }

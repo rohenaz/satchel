@@ -1,0 +1,97 @@
+<html>
+
+  <head>
+    <title>BSV Satchel</title>
+    <script src="../dist/satchel.min.js"></script>
+
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        
+        // Sample BMAP tx
+        document.querySelector('textarea').value = `
+  [
+    {"type": "str", "v": "19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAut"},
+    {"type": "str", "v": "# hello world"},
+    {"type": "str", "v": "text/markdown"},
+    {"type": "str", "v": "UTF-8"},
+    {"type": "str", "v": "demo.md"},
+    {"type": "str", "v": "|"},
+    {"type": "str", "v": "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5"},
+    {"type": "str", "v": "SET"},
+    {"type": "str", "v": "app"},
+    {"type": "str", "v": "satchel-demo"},
+    {"type": "str", "v": "type"},
+    {"type": "str", "v": "comment"},
+    {"type": "str", "v": "user"},
+    {"type": "str", "v": "satchmo"}
+  ]
+`
+      })
+
+      const walletLoaded = () => {
+
+        // Login check & prompt, otherwise continue
+        let loggedIn = satchel.isLoggedIn()
+        if (!satchel.isLoggedIn()) {
+          let login = prompt('Enter a 12 word mnemonic')
+          satchel.importMnemonic(login)
+          return
+        } 
+
+        // Update the UI with wallet info
+        let div = document.createElement('div')
+        div.innerHTML = 'Address:' + satchel.getAddressStr() + '<br />Balance:' + satchel.getBalance()
+        document.getElementById('wallet').appendChild(div)
+      }
+
+      const initSatchel = () => {
+        /* INIT SATCHEL */
+        // make a random address to use as an api key
+        // you can just use your own api key here :)
+        let privateKey = satchel.bsv.PrivateKey.fromRandom()
+        let publicKey = satchel.bsv.PublicKey.fromPrivateKey(privateKey)
+        let apiKey = satchel.bsv.Address.fromPublicKey(publicKey)
+        satchel.init({
+          'planariaApiKey': apiKey,
+          'feePerKb': 1337,
+          'bitsocketCallback': socketCallback
+        }, walletLoaded)
+      }
+
+      const socketCallback = (data) => {
+        // Here you can react to wallet messages in your UI
+        console.log('socket callback', data)
+      }
+
+      const makeTx = () => {
+        let val = document.querySelector('textarea').value
+        console.log('make tx', val.trim())
+        let tx = new satchel.bsv.Transaction()
+        tx.from(satchel.getUtxos())
+        tx = satchel.addOpReturnData(tx, JSON.parse(val.trim()))
+
+        // Update the UI
+        document.getElementById('txHex').value = tx.toString()
+      }
+
+      document.addEventListener('DOMContentLoaded', () => {
+        initSatchel()
+      })
+
+    </script>
+  </head>
+  <body>
+    <h1>Stop. Satchel Time.</h1>
+    <div id="wallet"></div>
+    <label for="data">Data:</p>
+    <textarea name="data" style="width:600px; height:300px"></textarea>
+    <br />
+    <small>This is the same format as the "data" portion of <a href="https://github.com/unwriter/datapay">Datapay format</a>.</small>
+    <br />
+    <br />
+    <button onclick="makeTx()">Make Tx</button>
+    <br />
+    <br />
+    <textarea  style="width:600px; height:300px" id="txHex"></textarea>
+  </body>
+</html>
