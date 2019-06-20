@@ -34,7 +34,11 @@
         let loggedIn = satchel.isLoggedIn()
         if (!satchel.isLoggedIn()) {
           let login = prompt('Enter a 12 word mnemonic')
-          satchel.importMnemonic(login)
+          if (login.length === 51){
+            satchel.login(login)
+          } else {
+            satchel.importMnemonic(login)
+          }
           return
         } 
 
