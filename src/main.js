@@ -135,8 +135,8 @@ app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 app.receiveAddressLinkUrlMapper = (address) => `https://whatsonchain.com/address/${address}`
 app.txLinkUrlMapper = (txid) => `https://whatsonchain.com/tx/${txid}`
 
-app.getBalance = () => +localStorage.getItem('satchel.balance')
-app.getUnconfirmedBalance = () => +localStorage.getItem('satchel.unconfirmed-balance')
+app.getBalance = () => localStorage.getItem('satchel.balance')
+app.getUnconfirmedBalance = () => localStorage.getItem('satchel.unconfirmed-balance')
 app.getWif = () => localStorage.getItem('satchel.wif')
 app.isLoggedIn = () => !!app.getWif()
 app.getPrivateKey = () => new bsv.PrivateKey(app.getWif())
