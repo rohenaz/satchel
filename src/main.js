@@ -214,18 +214,32 @@ app.importWif = (wif) => {
 app.login = (wif, callback) => {
   app.callBefore('login', [wif])
   localStorage.setItem('satchel.wif', wif)
-  app.updateBalance()
-  app.updateUtxos()
-  if (app.debug) {
-    console.info('Satchel: Logged in')
-  }
-  if (!app.socket) { app.bitsocketListener() }
+  app.updateBalance(app.updateUtxos(
+    () => {
+      if (app.debug) {
+        console.info('Satchel: Logged in')
+      }
+      if (!app.socket) { app.bitsocketListener() }
 
-  if (callback) {
-    callback()
-  }
-
-  app.callAfter('login', [wif])
+      if (callback) {
+        callback()
+      }
+      app.callAfter('login', [wif])
+    },
+    () => {
+      if (callback) {
+        callback()
+      }
+      // No UTXO
+      app.callAfter('login', [wif])
+    }
+  ), (err) => {
+    if (callback) {
+      callback()
+    }
+    // No Balance
+    app.callAfter('login', [wif])
+  })
 }
 
 app.logout = (callback) => {
@@ -357,6 +371,11 @@ app.broadcastTx = (tx, callback, errCallback, options = {
 app.updateBalance = (callback, errCallback) => {
   app.callBefore('updateBalance', [app.getBalance()])
 
+  if (!app.insight) {
+    errCallback('No insight. Did you call init first?')
+    return
+  }
+
   app.insight.address(app.getAddressStr(), (err, addrInfo) => {
     if (err) {
       if (errCallback) {
@@ -383,6 +402,11 @@ app.updateBalance = (callback, errCallback) => {
 
 app.updateUtxos = (callback, errCallback) => {
   app.callBefore('updateUtxos', [])
+
+  if (!app.insight) {
+    errCallback('No insight. Did you call init first?')
+    return
+  }
 
   app.insight.getUnspentUtxos(app.getAddressStr(), (err, utxoInfo) => {
     if (err) {
