@@ -2,89 +2,148 @@
 
   <head>
     <title>BSV Satchel</title>
+    <style type="text/css">
+      body {
+        font-family: 'Tahoma';
+        font-size: 1rem;
+      }
+    </style>
     <script src="../dist/satchel.min.js"></script>
-
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         
         // Sample BMAP tx
         document.querySelector('textarea').value = `
   [
-    {"type": "str", "v": "19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAut"},
-    {"type": "str", "v": "# hello world"},
-    {"type": "str", "v": "text/markdown"},
-    {"type": "str", "v": "UTF-8"},
-    {"type": "str", "v": "demo.md"},
-    {"type": "str", "v": "|"},
-    {"type": "str", "v": "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5"},
-    {"type": "str", "v": "SET"},
-    {"type": "str", "v": "app"},
-    {"type": "str", "v": "satchel-demo"},
-    {"type": "str", "v": "type"},
-    {"type": "str", "v": "comment"},
-    {"type": "str", "v": "user"},
-    {"type": "str", "v": "satchmo"}
+    "19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAut",
+    "# hello world",
+    "text/markdown",
+    "UTF-8",
+    "demo.md",
+    "|",
+    "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5",
+    "SET",
+    "app",
+    "satchel-demo",
+    "type",
+    "comment",
+    "user",
+    "satchmo"
   ]
 `
       })
 
-      const walletLoaded = () => {
+
+      let activeTx
+
+      const walletLoaded = async () => {
 
         // Login check & prompt, otherwise continue
         let loggedIn = satchel.isLoggedIn()
         if (!satchel.isLoggedIn()) {
-          let login = prompt('Enter a 12 word mnemonic')
-          satchel.importMnemonic(login)
-          return
+          await satchel.new()
         } 
 
         // Update the UI with wallet info
         let div = document.createElement('div')
-        div.innerHTML = 'Address:' + satchel.getAddressStr() + '<br />Balance:' + satchel.getBalance()
+        let addressStr = satchel.address().toString()
+        div.innerHTML = 'Address:' + addressStr + '<br />Balance:' + satchel.getBalance()
+        document.getElementById('wallet').innerHTML = ''
         document.getElementById('wallet').appendChild(div)
-      }
-
-      const initSatchel = () => {
-        /* INIT SATCHEL */
-        // make a random address to use as an api key
-        // you can just use your own api key here :)
-        let privateKey = satchel.bsv.PrivateKey.fromRandom()
-        let publicKey = satchel.bsv.PublicKey.fromPrivateKey(privateKey)
-        let apiKey = satchel.bsv.Address.fromPublicKey(publicKey)
-        satchel.init({
-          'planariaApiKey': apiKey,
-          'feePerKb': 1337,
-          'bitsocketCallback': socketCallback
-        }, walletLoaded)
       }
 
       const socketCallback = (data) => {
         // Here you can react to wallet messages in your UI
         console.log('socket callback', data)
+        walletLoaded()
       }
 
-      const makeTx = () => {
-        let val = document.querySelector('textarea').value
-        console.log('make tx', val.trim())
-        let tx = new satchel.bsv.Transaction()
-        tx.from(satchel.getUtxos())
-        tx = satchel.addOpReturnData(tx, JSON.parse(val.trim()))
+      const initSatchel = async () => {
+        /* INIT SATCHEL */
+
+        // ***** REPLACE WITH YOUR PLANARIA API KEY ***** //
+        // ***** GET ONE HERE: https://www.bitindex.network/#get-api-key //
+        let planariaApiKey = '1bCypws1toQHRkqQev22u7sWGrG9S1Vtf'
+
+        // ***** REPLACE WITH YOUR BITINDEX API KEY ***** //
+        // ***** GET ONE HERE: https://www.bitindex.network/#get-api-key //
+        let bitIndexApiKey = 'AFiMUsLXkrrAVSjX2kVT2RaDqyPwvqXE4LdhYvS4vheoejohAEV5aLp1XrXmDfK9qp'
+
+        await satchel.init({
+          'planariaApiKey': planariaApiKey,
+          'feePerKb': 1337,
+          'bitsocketCallback': socketCallback,
+          'bitIndexApiKey': bitIndexApiKey
+        })
+        await walletLoaded()
+      }
+
+      const loginPrompt = async () => {
+        let login = prompt('Enter a 12 word mnemonic, or extended private key.')
+        if (!satchel.login) { return }
+        if (login.split(' ').length === 12) {
+          await satchel.importMnemonic(login)
+        } else {
+          await satchel.login(login)
+        }
+        if (satchel.isLoggedIn()) {
+          console.log('logged in')
+          await walletLoaded()
+        }
+      }
+
+      // This creates a transaction but does not broadcast it yet
+      const makeTx = async () => {
+        // Get the data array from the textarea and remove whitespace
+        let val = document.querySelector('#data').value.replace(/\s+/g, '')
+
+        // create a new tx from your satchel with the data array as OP_RETURN data
+        let tx = await satchel.newDataTx(JSON.parse(val))
 
         // Update the UI
         document.getElementById('txHex').value = tx.toString()
+
+        // set the active tx
+        activeTx = tx
       }
 
-      document.addEventListener('DOMContentLoaded', () => {
-        initSatchel()
+      const broadcast = async () => {
+        try {
+          await satchel.broadcastTx(activeTx)
+        } catch (e) {
+          console.error(e)
+        }
+      }
+
+      document.addEventListener('DOMContentLoaded', async () => {
+        await initSatchel()
       })
+
+      const getHistory = async () => {
+        let history = await satchel.getHistory()
+        let historyDiv = document.createElement('div')
+        // combine confirmed and unconfirmed items
+        let items = history.u.concat(history.c)
+        for (let i in items) {
+          let item = items[i]
+          console.log('history item', item)
+          let itemDiv = document.createElement('div')
+          itemDiv.innerText = item.tx.h
+          historyDiv.appendChild(itemDiv)
+        }
+        document.body.appendChild(historyDiv)
+      }
 
     </script>
   </head>
   <body>
     <h1>Stop. Satchel Time.</h1>
-    <div id="wallet"></div>
-    <label for="data">Data:</p>
-    <textarea name="data" style="width:600px; height:300px"></textarea>
+    <div id="wallet"></div><br />
+    <button onclick="loginPrompt()">Restore Wallet</button>
+    <br />
+    <br />
+    <label for="data">OP_RETURN Data:</label><br />
+    <textarea name="data" id="data" style="width:600px; height:300px"></textarea>
     <br />
     <small>This is the same format as the "data" portion of <a href="https://github.com/unwriter/datapay">Datapay format</a>.</small>
     <br />
@@ -93,5 +152,12 @@
     <br />
     <br />
     <textarea  style="width:600px; height:300px" id="txHex"></textarea>
+    <br />
+    <br />
+    <button onclick="broadcast()">Broadcast</button>
+
+    <h1>Tx History</h1>
+
+    <button onclick="getHistory()">Get History</button>
   </body>
 </html>
