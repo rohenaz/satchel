@@ -10,12 +10,14 @@
   },
   "devDependencies": {
     "webpack": "^4.33.0",
-    "webpack-cli": "^3.3.4"
+    "webpack-cli": "^3.3.4",
+    "local-web-server": "latest"
   },
   "main": "./dist/satchel.min.js",
   "scripts": {
     "build": "webpack",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "serve": "yarn build && ws"
   },
   "standard": {
     "globals": [
