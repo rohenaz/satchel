@@ -17,6 +17,7 @@ app.mnemonic = Mnemonic
 app.feePerKb = 1000
 app.rpc = 'https://api.bitindex.network'
 app.planariaApiKey = ''
+app.updateDebounce = 10000
 
 app.planariaUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
 
@@ -150,9 +151,7 @@ app.init = async (options = {}) => {
   try {
     if (app.isLoggedIn()) {
       // ToDo - Check Timestamp to not trigger on every reload
-      await app.next()
-      await app.updateBalance()
-      await app.updateUtxos()
+      await app.updateAll()
       await app.bitsocketListener()
     }
   } catch (e) {
@@ -179,16 +178,19 @@ app.balance = () => { return app.confirmedBalance() + app.unconfirmedBalance() }
 app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
 app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
 app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
+app.mnemonic = () => localStorage.getItem('satchel.mnemonic')
+app.timestamp = () => localStorage.getItem('satchel.timestamp')
 app.unconfirmedBalance = () => parseInt(localStorage.getItem('satchel.unconfirmed-balance') || 0)
 app.xPriv = () => localStorage.getItem('satchel.xpriv')
 app.xPub = () => localStorage.getItem('satchel.xpub')
 
 app.privateKey = () => {  
   // Get derived HD number
-  let num = localStorage.getItem('satchel.num')
+  let num = localStorage.getItem('satchel.num') || 0
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
-    throw new Error('log in first')
+    debugger
+    throw new Error('log in first', num)
   }
 
   return app.lookupPrivateKey(0, num)
@@ -226,8 +228,7 @@ app.generateQrCode = (address) => {
 app.new = async () => {
   // generate a new mnemonic and log in
   let mnemonic = Mnemonic.fromRandom()
-  let hdPrivateKey = bsv.HDPrivateKey.fromSeed(mnemonic.toSeed())
-  await app.login(hdPrivateKey.toString())
+  await app.login(mnemonic.toString())
 }
 
 // Call next address BitIndex endpoint and set num
@@ -243,37 +244,78 @@ app.next = async () => {
   let r = await fetch(url, header)
   
   let res = await r.json()
-  let num = res.filter(a => { return a.chain === 0})[0].num
+  let num = 0
+  if (res instanceof Array) {
+    num = res.filter(a => { return a.chain === 0})[0].num
+  }
+  
   localStorage.setItem('satchel.num', num)
   return res
 }
 
-app.download = () => {
-  // download the mnemonic
-  console.log('download called')
+// Pass an element or querySelector to apply mnemonic download href
+// and unhide element
+app.setMnemonicAnchor = (a) => {
+  let el
+  if (typeof a === 'string') {
+    el = document.querySelector(a)
+  } else if (a instanceof HTMLAnchorElement) {
+    el = a
+  } else {
+    console.warn('invalid type')
+    return
+  }
+  if (!el) {
+    throw new Error('Cant find anchor element')
+  }
+  el.attributes['download'] = 'mnemonic-satchel.txt'
+  el.href = app.downloadHref()
+  el.style.display = 'unset'
 }
 
-app.importMnemonic = async (passphrase) => {
-  if (!Mnemonic.isValid(passphrase)) {
-   throw new Error('Invalid mnemonic')
+// Used internally by setMnemonicAnchor
+app.downloadHref = () => {
+  let mnemonic = app.mnemonic()
+  if (!mnemonic) { return }
+  const blob = new window.Blob([mnemonic], {
+    type: 'text/plain'
+  })
+
+  return URL.createObjectURL(blob)
+}
+
+// Login with xPriv or Mnemonic
+app.login = async (xprvOrMnemonic) => {
+
+  let hdPrivateKey
+
+  if (xprvOrMnemonic.split(' ').length === 12) {
+    if (!Mnemonic.isValid(passphrase)) {
+      throw new Error('Invalid mnemonic')
+     }
+    const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
+    hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed())
+    localStorage.setItem('satchel.mnemonic', xprvOrMnemonic)
+  } else {
+    hdPrivateKey = bsv.HDPrivateKey.fromString(xprvOrMnemonic)
   }
 
-  const importedMnemonic = Mnemonic.fromString(passphrase)
-  const hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed())
-  return await app.login(hdPrivateKey.toString())
+  localStorage.setItem('satchel.xpriv', hdPrivateKey.toString())
+  localStorage.setItem('satchel.xpub', bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
+
+  await updateAll()
+
+  if (!app.socket) { app.bitsocketListener() }
 }
 
-app.login = async (xpriv) => {
-
-  let hdPublicKey = bsv.HDPublicKey.fromHDPrivateKey(bsv.HDPrivateKey.fromString(xpriv))
-  localStorage.setItem('satchel.xpriv', xpriv)
-  localStorage.setItem('satchel.xpub', hdPublicKey.toString())
-
-  // Gets next keypair position so we can derive keys
-  await app.next()
-  await app.updateBalance()
-  await app.updateUtxos()
-  if (!app.socket) { app.bitsocketListener() }
+// Updates if app.timestamp is older than app.updateDebounce
+app.updateAll = async () => {
+  let ts = app.timestamp()
+  if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
+    // Gets next keypair position so we can derive keys
+    localStorage.setItem('satchel.timestamp', new Date().getTime())
+    await Promise.all(app.next(), app.updateBalance(), app.updateUtxos())
+  }
 }
 
 app.logout = () => {
@@ -449,13 +491,18 @@ app.updateUtxos = async () => {
   try {
     let res = await fetch(url, header)
     utxos = await res.json()
+    if (!utxos) {
+      utxos = []
+    }
   } catch (e) {
     throw new Error(e)
   }
 
-  utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
+  if (utxos instanceof Array) {
+    utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
     : ((a.satoshis < b.satoshis) ? -1
       : 0))
+  }
 
   localStorage.setItem('satchel.utxo', JSON.stringify(utxos))
   return utxos

@@ -9,137 +9,14 @@
       }
     </style>
     <script src="../dist/satchel.min.js"></script>
-    <script>
-      document.addEventListener('DOMContentLoaded', () => {
-        
-        // Sample BMAP tx
-        document.querySelector('textarea').value = `
-  [
-    "19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAut",
-    "# hello world",
-    "text/markdown",
-    "UTF-8",
-    "demo.md",
-    "|",
-    "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5",
-    "SET",
-    "app",
-    "satchel-demo",
-    "type",
-    "comment",
-    "user",
-    "satchmo"
-  ]
-`
-      })
-
-
-      let activeTx
-
-      const walletLoaded = async () => {
-
-        // Login check & prompt, otherwise continue
-        let loggedIn = satchel.isLoggedIn()
-        if (!satchel.isLoggedIn()) {
-          await satchel.new()
-        } 
-
-        // Update the UI with wallet info
-        let div = document.createElement('div')
-        let addressStr = satchel.address().toString()
-        div.innerHTML = 'Address:' + addressStr + '<br />Balance:' + satchel.getBalance()
-        document.getElementById('wallet').innerHTML = ''
-        document.getElementById('wallet').appendChild(div)
-      }
-
-      const socketCallback = (data) => {
-        // Here you can react to wallet messages in your UI
-        console.log('socket callback', data)
-        walletLoaded()
-      }
-
-      const initSatchel = async () => {
-        /* INIT SATCHEL */
-
-        // ***** REPLACE WITH YOUR PLANARIA API KEY ***** //
-        // ***** GET ONE HERE: https://www.bitindex.network/#get-api-key //
-        let planariaApiKey = '1bCypws1toQHRkqQev22u7sWGrG9S1Vtf'
-
-        // ***** REPLACE WITH YOUR BITINDEX API KEY ***** //
-        // ***** GET ONE HERE: https://www.bitindex.network/#get-api-key //
-        let bitIndexApiKey = 'AFiMUsLXkrrAVSjX2kVT2RaDqyPwvqXE4LdhYvS4vheoejohAEV5aLp1XrXmDfK9qp'
-
-        await satchel.init({
-          'planariaApiKey': planariaApiKey,
-          'feePerKb': 1337,
-          'bitsocketCallback': socketCallback,
-          'bitIndexApiKey': bitIndexApiKey
-        })
-        await walletLoaded()
-      }
-
-      const loginPrompt = async () => {
-        let login = prompt('Enter a 12 word mnemonic, or extended private key.')
-        if (!satchel.login) { return }
-        if (login.split(' ').length === 12) {
-          await satchel.importMnemonic(login)
-        } else {
-          await satchel.login(login)
-        }
-        if (satchel.isLoggedIn()) {
-          console.log('logged in')
-          await walletLoaded()
-        }
-      }
-
-      // This creates a transaction but does not broadcast it yet
-      const makeTx = async () => {
-        // Get the data array from the textarea and remove whitespace
-        let val = document.querySelector('#data').value.replace(/\s+/g, '')
-
-        // create a new tx from your satchel with the data array as OP_RETURN data
-        let tx = await satchel.newDataTx(JSON.parse(val))
-
-        // Update the UI
-        document.getElementById('txHex').value = tx.toString()
-
-        // set the active tx
-        activeTx = tx
-      }
-
-      const broadcast = async () => {
-        try {
-          await satchel.broadcastTx(activeTx)
-        } catch (e) {
-          console.error(e)
-        }
-      }
-
-      document.addEventListener('DOMContentLoaded', async () => {
-        await initSatchel()
-      })
-
-      const getHistory = async () => {
-        let history = await satchel.getHistory()
-        let historyDiv = document.createElement('div')
-        // combine confirmed and unconfirmed items
-        let items = history.u.concat(history.c)
-        for (let i in items) {
-          let item = items[i]
-          console.log('history item', item)
-          let itemDiv = document.createElement('div')
-          itemDiv.innerText = item.tx.h
-          historyDiv.appendChild(itemDiv)
-        }
-        document.body.appendChild(historyDiv)
-      }
-
-    </script>
+    <script src="./js/wallet.js"></script>
   </head>
   <body>
     <h1>Stop. Satchel Time.</h1>
     <div id="wallet"></div><br />
     <button onclick="loginPrompt()">Restore Wallet</button>
+    <br />
+    <a id="downloadLink" style="display: none;" download="mnemonic-satchel.txt">Download Mnemonic</a>
     <br />
     <br />
     <label for="data">OP_RETURN Data:</label><br />
