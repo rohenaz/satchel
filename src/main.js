@@ -290,7 +290,7 @@ app.login = async (xprvOrMnemonic) => {
   let hdPrivateKey
 
   if (xprvOrMnemonic.split(' ').length === 12) {
-    if (!Mnemonic.isValid(passphrase)) {
+    if (!Mnemonic.isValid(xprvOrMnemonic)) {
       throw new Error('Invalid mnemonic')
      }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
