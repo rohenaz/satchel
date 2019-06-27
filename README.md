@@ -1,13 +1,16 @@
-# Satchel Alpha
+# Satchel Beta
 
-Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) wallet library. It it is designed to speed up development of new Bitcoin apps without having UI opinions. It is in essence a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software.
+Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software.
+
+![Alt text](https://raw.github.com/rohenaz/StackOverflow/master/satchel/satchel.svg?sanitize=true)
+
 
 #### Thanks to the following projects which made this possible
 
-- https://bitgraph.network
-- https://bitsocket.org
-- https://bitcore.io
-- https://github.com/bitcoinjs/bip39
+- https://chronos.bitdb.network/ (socket)
+- https://genesis.bitdb.network/ (tx history)
+- https://bitindex.network/ (xpub monitor)
+- https://github.com/moneybutton/bsv
 - https://github.com/dawsbot/satoshi-bitcoin
 - https://github.com/kazuhikoarase/qrcode-generator
 
@@ -38,9 +41,9 @@ import Satchel from 'bsv-satchel'
 access from window.satchel
 ```
 
-#### Examples
+#### Live Demo
 
-See `https://blockday.cash` and `https://dtv.cash` for an examples of applications using Satchel. 
+[DTV](https://dtv.cash)
 
 
 ## Methods
@@ -68,7 +71,8 @@ Initializes the wallet and attaches it to the page.
 
 ```js
 satchel.init({
-    'planariaApiKey': 'planaria_api_key_goes_here',
+    'bitIndexApiKey': 'BITINDEX_API_HERE',
+    'planariaApiKey': 'PLANARIA_API_HERE',
     'feePerKb': 1337
 }, walletLoaded)
 ```
@@ -195,10 +199,7 @@ To use this pass an array in [datapay](https://github.com/unwriter/datapay) form
 
 let tx = new satchel.bsv.Transaction()
 tx.from(satchel.utxos())
-tx = satchel.addOpReturnData(tx, [
-    {'type': 'hex', 'v': '6d01'},
-    {'type': 'str', 'v': 'testing testing'},
-])
+tx = satchel.addOpReturnData(tx, ['0x6d01', 'testing testing'])
 
 ```
 
@@ -255,13 +256,55 @@ Retrieves transaction history across all addresses, both internal and external.
 
 ##### Example
 ```js
-
 let response = await satchel.getHistory()
 console.log('history retrieved', response)
-
-
 ```
 
+
+#### `async satchel.new() -> string`
+Creates a new HD wallet and logs in with it. Returns the new mnemonic passphrase.
+
+##### Example
+```js
+let mnemonic = await satchel.new()
+console.log('wallet created', mnemonic)
+```
+
+
+#### `async satchel.newDataTx(data: Array, address: string, satoshis: integer) -> txid: string`
+Creates a new bsv.Transaction object from datapay formatted array and signs it with the current child private key. Returns the Transaction object. Address and satoshis are optional inputs for creating a second output sending some BSV to the provided address.
+
+##### Example
+```js
+let tx = await satchel.newDataTx(['yourdata', 'goes', 'here', '0x123'])
+console.log('Tx created and ready to broadcast:', tx.toString())
+```
+
+#### `async satchel.next() -> object`
+Gets the next unused address information from BitIndex. This includes the chain, num, and address. Sets `satchel.num` key in localStorage.
+
+##### Example
+```js
+let nextAddressObj = await satchel.next()
+console.log('Next unused address:', nextAddressObj.address)
+```
+
+#### `async satchel.setMnemonicAnchor(a: Element)`
+Takes an HTMLAnchorElement and sets the href and download attributes to turn it into a 'download mnemonic' link. When clicked, a .txt files is downloaded containing your mnemonic passphrase. It will also remove the 'style:none' css attribute, making the button visible only when a mnemonic is available to download.
+
+##### Example
+```html
+  <a id="downloadLink" style="display:none">Download Mnemonic</a>
+```
+
+```js
+let el = document.getElementById('downloadLink')
+let nextAddressObj = await satchel.setMnemonicAnchor(el)
+console.log('Now you can click the download link')
+```
+
+
+setMnemonicAnchor
 #### `async satchel.queryPlanaria(query: object)`
 Performs a query on the bitdb database which results in a Json object.
 Find documentation for this at https://bitdb.network/ 
