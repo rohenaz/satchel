@@ -303,7 +303,7 @@ app.login = async (xprvOrMnemonic) => {
   localStorage.setItem('satchel.xpriv', hdPrivateKey.toString())
   localStorage.setItem('satchel.xpub', bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
 
-  await updateAll()
+  await app.updateAll()
 
   if (!app.socket) { app.bitsocketListener() }
 }
@@ -314,7 +314,7 @@ app.updateAll = async () => {
   if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
     // Gets next keypair position so we can derive keys
     localStorage.setItem('satchel.timestamp', new Date().getTime())
-    await Promise.all(app.next(), app.updateBalance(), app.updateUtxos())
+    await Promise.all([app.next(), app.updateBalance(), app.updateUtxos()])
   }
 }
 
