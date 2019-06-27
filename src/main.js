@@ -46,8 +46,8 @@ const bitindexHeader = () => {
 // wallet listens to socket on login
 // fires the callback when anything is received
 app.bitsocketListener = (callback = app.bitsocketCallback) => {
-  if (!app.bitsocketUrl) { console.error('Error: bitsocketUrl is not defined') }
-  if (!app.bitsocketCallback) { console.error('Error: bitsocketCallback is not defined') }
+  if (!app.bitsocketUrl) { throw new Error('Error: bitsocketUrl is not defined') }
+  if (!app.bitsocketCallback) { throw new Error('Error: bitsocketCallback is not defined') }
 
   const q = app.monitorAddressQuery([app.address().toString(), app.changeAddress().toString()])
   const b64 = btoa(JSON.stringify(q))
@@ -150,12 +150,13 @@ app.init = async (options = {}) => {
 
   try {
     if (app.isLoggedIn()) {
-      // ToDo - Check Timestamp to not trigger on every reload
       await app.updateAll()
-      await app.bitsocketListener()
+      if (app.bitsocketListener) {
+        await app.bitsocketListener()
+      }
     }
   } catch (e) {
-    return new Error('Failed getting insight', e)
+    return new Error('Failed to initialize', e)
   }
 }
 
@@ -206,6 +207,9 @@ app.lookupPrivateKey = (chain, num) => {
   return hdPrivateKey.deriveChild('m/' + chain + '/' + num).privateKey
 }
 
+
+// a wallet can have many utxos
+// consume the top `max` utxos by value
 app.utxos = (max = 5) => {
   let utxos = JSON.parse(localStorage.getItem('satchel.utxo') || '[]')
 
@@ -215,6 +219,7 @@ app.utxos = (max = 5) => {
   }).slice(0, max)
 }
 
+// create a qrCode object for a given address
 app.generateQrCode = (address) => {
   const typeNumber = 0
   const errorCorrectionLevel = 'H'
@@ -225,10 +230,11 @@ app.generateQrCode = (address) => {
   return qr
 }
 
+// generate a new mnemonic and logs in
 app.new = async () => {
-  // generate a new mnemonic and log in
   let mnemonic = Mnemonic.fromRandom()
   await app.login(mnemonic.toString())
+  return mnemonic
 }
 
 // Call next address BitIndex endpoint and set num
@@ -262,7 +268,7 @@ app.setMnemonicAnchor = (a) => {
   } else if (a instanceof HTMLAnchorElement) {
     el = a
   } else {
-    console.warn('invalid type')
+    console.warn('invalid anchor. Must be a HTMLAnchorElement, or a string for document.querySelector()')
     return
   }
   if (!el) {
@@ -314,10 +320,13 @@ app.updateAll = async () => {
   if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
     // Gets next keypair position so we can derive keys
     localStorage.setItem('satchel.timestamp', new Date().getTime())
-    await Promise.all([app.next(), app.updateBalance(), app.updateUtxos()])
+    await app.next()
+    await app.updateBalance()
+    await app.updateUtxos()
   }
 }
 
+// clears keys from localStorage
 app.logout = () => {
   const localstorageKeys = []
   for (let i = 0; i < localStorage.length; ++i) {
@@ -381,8 +390,6 @@ app.send = async (address, satoshis) => {
   }
 
   let tx = new bsv.Transaction()
-  // a wallet can have a ton of utxos
-  // consume the top 10 utxos by value
   tx.from(app.utxos())
   tx.to(address, satoshis)
   tx.feePerKb(app.feePerKb)
