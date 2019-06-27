@@ -2,7 +2,7 @@
 
 Satchel is a standardjs compliant, light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software.
 
-![Alt text](https://raw.github.com/rohenaz/StackOverflow/master/satchel/satchel.svg?sanitize=true)
+![Satchel](https://raw.github.com/rohenaz/satchel/master/satchel.svg?sanitize=true)
 
 
 #### Thanks to the following projects which made this possible
