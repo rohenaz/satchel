@@ -190,7 +190,6 @@ app.privateKey = () => {
   let num = localStorage.getItem('satchel.num') || 0
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
-    debugger
     throw new Error('log in first', num)
   }
 
