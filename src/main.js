@@ -1,33 +1,42 @@
+// Load the bsv package
 const bsv = require('bsv')
+
+// Load the mnemonic package
 const Mnemonic = require('bsv/mnemonic')
+
+// Load the satoshi-bitcoin package
 const sb = require('satoshi-bitcoin')
 
+// Standard dust limit
 const dustLimit = 546
 
-const app = {}
+// Fee per kilobyte
+const feePerKb = 1000
 
+// Initialize the application
+const app = {
+  bitIndexApiKey: '',
+  bsv: bsv,
+  feePerKb: feePerKb,
+  mnemonic: Mnemonic,
+  planariaApiKey: '',
+  planariaUrl: 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/',
+  rpc: 'https://api.bitindex.network',
+  updateDebounce: 10000,
+
+  // this must be set to enable bitsocket
+  bitsocketCallback: null,
+  bitsocketUrl: 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/',
+  debug: false,
+  socket: null
+}
+
+// Sleep - promise with a setTimeout()
 const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
-app.bitIndexApiKey = ''
-app.bsv = bsv
-app.mnemonic = Mnemonic
-app.feePerKb = 1000
-app.rpc = 'https://api.bitindex.network'
-app.planariaApiKey = ''
-app.updateDebounce = 10000
-
-app.planariaUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
-
-// this must be set to enable bitsocket
-app.bitsocketUrl = 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/'
-app.debug = false
-
-// this must be set to enable bitsocket
-app.bitsocketCallback = null
-app.socket = null
-
+// jsonHeader returns a header for JSON
 const jsonHeader = () => {
   return {
     accept: 'application/json',
@@ -35,11 +44,31 @@ const jsonHeader = () => {
   }
 }
 
+// bitindexHeader returns a header for bitindex with API key
 const bitindexHeader = () => {
   let header = jsonHeader()
   header.api_key = app.bitIndexApiKey
   return header
 }
+
+// Configure the application
+// app.bitIndexApiKey = ''
+// app.bsv = bsv
+// app.mnemonic = Mnemonic
+// app.feePerKb = 1000
+// app.rpc = 'https://api.bitindex.network'
+// app.planariaApiKey = ''
+// app.updateDebounce = 10000
+
+// app.planariaUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
+
+// this must be set to enable bitsocket
+// app.bitsocketUrl = 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/'
+// app.debug = false
+
+// this must be set to enable bitsocket
+// app.bitsocketCallback = null
+// app.socket = null
 
 // pass a callback to init
 // wallet listens to socket on login
@@ -162,28 +191,41 @@ app.init = async (options = {}) => {
 }
 
 app.sat2bsv = (sat) => sb.toBitcoin(sat)
+
 app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
 app.receiveAddressLink = (address) => `https://whatsonchain.com/address/${address}`
+
 app.txLink = (txid) => `https://whatsonchain.com/tx/${txid}`
+
 // returns a bsv.Address
 app.changeAddress = () => {
   let changeKey = app.lookupPrivateKey(1, localStorage.getItem('satchel.num'))
   return bsv.Address.fromPrivateKey(changeKey, 'livenet')
 }
+
 // returns a bsv.Address
 app.address = () => {
   let pubKey = app.publicKey()
   return bsv.Address.fromPublicKey(pubKey, 'livenet')
 }
+
 app.balance = () => { return app.confirmedBalance() + app.unconfirmedBalance() }
+
 app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
+
 app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
+
 app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
+
 app.mnemonic = () => localStorage.getItem('satchel.mnemonic')
+
 app.timestamp = () => localStorage.getItem('satchel.timestamp')
+
 app.unconfirmedBalance = () => parseInt(localStorage.getItem('satchel.unconfirmed-balance') || 0)
+
 app.xPriv = () => localStorage.getItem('satchel.xpriv')
+
 app.xPub = () => localStorage.getItem('satchel.xpub')
 
 app.privateKey = () => {
@@ -197,8 +239,11 @@ app.privateKey = () => {
 
   return app.lookupPrivateKey(0, num)
 }
+
 app.publicKey = () => app.privateKey().publicKey
+
 app.isLoggedIn = () => !!app.xPriv()
+
 // returns a bsv.PrivateKey
 app.lookupPrivateKey = (chain, num) => {
   let hdPrivateKey = app.hdPrivateKey()
