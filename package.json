@@ -1,6 +1,6 @@
 {
-  "name": "satchel",
-  "version": "0.0.1",
+  "name": "bsv-satchel",
+  "version": "0.2.9",
   "description": "Satchel is a minimal Bitcoin SV headless HD wallet for the web",
   "author": "Satchmo",
   "contributors": [
@@ -17,7 +17,8 @@
   "homepage": "https://github.com/rohenaz/satchel",
   "dependencies": {
     "bsv": "^0.27.1",
-    "satoshi-bitcoin": "^1.0.4"
+    "satoshi-bitcoin": "^1.0.4",
+    "local-web-server": "^3.0.3"
   },
   "repository": {
     "type": "git",

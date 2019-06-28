@@ -4,231 +4,178 @@
   </div>
 </div>
 
-# Satchel Beta
+# Satchel (Beta)
 
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
+ [![last commit](https://img.shields.io/github/last-commit/rohenaz/satchel.svg?style=flat)](https://github.com/rohenaz/satchel/commits/master)
+[![version](https://img.shields.io/github/release-pre/rohenaz/satchel.svg?style=flat)](https://github.com/rohenaz/satchel/releases)
+[![license](https://img.shields.io/badge/license-Open%20BSV-brightgreen.svg?style=flat)](/LICENSE)
+[![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat)](https://github.com/RichardLitt/standard-readme)
 
 
-Satchel is a minimal [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet for the web. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software. It relies on a few [external services](#services) to keep the size as low as possible.
+Satchel is a minimal [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet for the web. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network activity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software. It relies on a few [external services](#services) to keep the size as low as possible.
 
 
-## Prerequisites
+## Table of Contents
+- [Installation](#installation)
+- [Documentation](#documentation)
+- [Examples](#examples)
+- [Code Standards](#code-standards)
+- [Usage](#usage)
+- [Maintainers](#maintainers)
+- [Contributing](#contributing)
+- [Dependencies](#dependencies)
+- [License](#license)
 
-You need npm or yarn installed. 
 
-## Build Source
+## Installation
 
-##### Install
+#### Prerequisites
+You need [npm](https://www.npmjs.com/) or [yarn](https://www.npmjs.com/package/yarn) installed.
 
+On a mac you can use [homebrew](https://brew.sh/) to install the above prerequisites 
+
+#### Install
+Clone the repo, cd into the folder and `yarn` (`npm install`)
 ```bash
 $ git clone https://github.com/rohenaz/satchel.git
 $ cd satchel
 $ yarn
-```
+```  
 
-##### Build
-
+#### Build From Source
+To generate a new satchel.min.js file, run the `yarn build` command (`npm run build`)
 ```bash
-yarn build
-```
+$ yarn build
+``` 
 
-##### Run Example
-
-```bash
-yarn serve
-```
+#### Run the Example
+To launch the example via a [local-web-server](https://www.npmjs.com/package/local-web-server)
 
 Then open your browser to http://localhost:8000/example/index.html
-
-
-## Usage
-
-````
-yarn add bsv-satchel
-````
-
-##### Example
-
-```html
-<script src="/node_modules/bsv-satchel/dist/satchel.min.js">
+```bash
+$ yarn serve
 ```
 
-Library will be available from window.satchel
+## Documentation
 
-```js
-satchel.init({
-    'bitIndexApiKey': 'BITINDEX_API_HERE',
-    'planariaApiKey': 'PLANARIA_API_HERE',
-    'feePerKb': 1337
-})
-```
-
-[Options](#options)
-
-#### Live Demo
-
-[map.sv](https://map.sv)
-
-
-## Methods
-
-
-#### `satchel.init(options: object)`
-
-```js
-satchel.init({
-    'planariaApiKey': 'PLANARIA_API_HERE',
-    ...
-})
-```
-
-Initializes the wallet and attaches it to the page. 
-
-
-##### Options
+##### Satchel Options
+Below are all the options available to configure satchel.
 
 | option | description | required | type | default|
 |--------|-------------|----------|------|--------|
-| bitIndexApiKey | Grab this from https://bitindex.network | :heavy_check_mark: | string | |
-| planariaApiKey | Grab this from https://bitdb.network/v3/dashboard | :heavy_check_mark: | string | |
+| bitIndexApiKey | Grab this from [BitIndex](https://bitindex.network) | :heavy_check_mark: | string | 1DGD3... |
+| planariaApiKey | Grab this from [BitDB](https://bitdb.network/v3/dashboard) | :heavy_check_mark: | string | 1XGGY... |
 | planariaUrl | Modify this if you are running a custom Planaria.  | |string |  https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/ |
 | bitsocketUrl | Modify this if you are running custom bitsocket instance.  | |string |  https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/ |
 | feePerKb | Satoshis per kilobyte for fee. |  | integer |  1000 |
 | rpc | What rpc service to use for sending transactions. | | string |  https://api.bitindex.network |
-| maxUtxos | The maximum number of utxos to return when calling satchel.utxos(). Will return utxos with highest value. | integer | 5 |
+| maxUtxos | The maximum number of utxos to return when calling satchel.utxos(). Will return utxos with highest value. |  | integer | 5 |
 | txsQuery | Data to query Planaria with when getHistory is called. | | function | `() => txsQuery()` |
 | bitsocketListener | This creates a bitsocket on login and closes on delete. Used for watching new transactions. Set to `null` if you don't want it to run. | | function | `() => {} -> EventSource (see code) ` |
 
-### `address() -> bsv.Address`
+#### Access to Included Libraries
+All the power from included libraries is at your finger tips:
 
-```js
-satchel.address().toString() === 'livenet'
-```
+[`moneybutton/bsv`](https://github.com/moneybutton/bsv) is available at `satchel.bsv`.
 
+[`moneybutton/mnemonic`](https://github.com/moneybutton/bsv-mnemonic) is available at `satchel.Mnemonic`
+
+
+## Satchel: Methods
+
+#### `address() -> bsv.Address`
 Retrieves the Address object associated with logged in user.
+```js
+satchel.address()
+``` 
 
-### `address().toString() -> string`
-
+#### `address().toString() -> string`
+Retrieves the string representation of the logged in address. This could be used to look up on an explorer website. 
 ```js
 satchel.address().toString() === '1....'
 ```
 
-Retrieves the string representation of the logged in address. This could be used to look up on an explorer website. 
-
-
-### `balance() -> integer`
-
+#### `balance() -> integer`
+Retrieves the amount of satoshis that are confirmed and unconfirmed combined.
 ```js
-
 if (satchel.balance() > 100000000) {
     console.log('you have at least 1 Bitcoin')
 }
 ```
 
-Retrieves the amount of satoshis that are confirmed and unconfirmed combined.
-
-
-### `confirmedBalance() -> integer`
-
+#### `confirmedBalance() -> integer`
+Retrieves the amount of satoshis that are confirmed for the account.
 ```js
-
 if (satchel.confirmedBalance() === 0) {
     console.log('you have no confirmed Bitcoin')
 }
 ```
 
-Retrieves the amount of satoshis that are confirmed for the account.
-
-
-### `unconfirmedBalance() -> integer`
-
+#### `unconfirmedBalance() -> integer`
+Retrieves the amount of satoshis that are unconfirmed for the account.
 ```js
-
 if (satchel.unconfirmedBalance() === 0) {
     console.log('you have no unconfirmed Bitcoin')
 }
 ```
 
-Retrieves the amount of satoshis that are unconfirmed for the account.
-
-
-### `utxos(int max) -> [object]`
+#### `utxos(int max) -> [object]`
+Retrieves the utxo set associated with an address. This is used for sending transactions. By default all utxos are used as inputs, up to a maximum of 5 to prevent very large transactions that may fail to broadcast on wallets with a high number of utxos. You may provide an optional maximum number of utxos to consume. Passing null will use all of them regardless of tx size.
 
 ```js
-
 for (const utxo of satchel.utxos()) {
     console.log(utxo['txid'])
 }
 ```
 
-Retrieves the utxo set associated with an address. This is used for sending transactions. By default all utxos are used as inputs, up to a maximum of 5 to prevent very large transactions that may fail to broadcast on wallets with a high number of utxos. You may provide an optional maximum number of utxos to consume. Passing null will use all of them regardless of tx size.
-
-
-### `privateKey() -> bsv.PrivateKey()`
+#### `privateKey() -> bsv.PrivateKey()`
+Retrieves the individual private key of the current address. For an extended key, use satchel.hdPrivateKey() instead.
 
 ```js
-
 if (satchel.privateKey().publicKey.compressed) {
     console.log('your public key is compressed')
 }
 ```
 
-Retrieves the individual private key of the current address. For an extended key, use satchel.hdPrivateKey() instead.
-
-
-### `isLoggedIn() -> boolean`
+#### `isLoggedIn() -> boolean`
 Checks if currently logged in.
-
 ```js
-
 if (! satchel.isLoggedIn()) {
     console.log('not logged in')
 }
 ```
 
-
-### `send(address: bsv.Address, satoshis: integer: (tx) => {})`
+#### `send(address: bsv.Address, satoshis: integer: (tx) => {})`
 Performs a basic transaction: to send N satoshis to an address.
-
 ```js
-
 const address = satchel.bsv.Address.fromString('1...')
 const sats = 2000
 let tx = await satchel.send(address, sats)
 console.log('transaction sent')
 console.log(tx)
-
 ```
 
-
-### `cleanTxDust(tx: bsv.Transaction) -> bsv.Transaction`
-Removes all outputs with more than 0 and less than 546 satoshis. This is a protocol limit.
-
+#### `cleanTxDust(tx: bsv.Transaction) -> bsv.Transaction`
+Removes all outputs with more than 0 and less than 546 satoshis. This is a protocol limit.          
 ```js
-
 let tx = new satchel.bsv.Transaction()
 tx.from(satchel.utxos())
 tx = satchel.cleanTxDust(tx)
-
 ```
 
-
-### `addOpReturnData(tx: bsv.Transaction, data: [object]) -> bsv.Transaction
-
+#### `addOpReturnData(tx: bsv.Transaction, data: [object]) -> bsv.Transaction
 Adds one or more `OP_RETURN` data points.
 
 To use this pass an array in [datapay](https://github.com/unwriter/datapay) format.
-
 ```js
-
 let tx = new satchel.bsv.Transaction()
 tx.from(satchel.utxos())
 tx = satchel.addOpReturnData(tx, ['0x6d01', 'testing testing'])
-
 ```
 
-
-### `broadcastTx(tx: bsv.Transaction, safe: boolean = true)`
+#### `broadcastTx(tx: bsv.Transaction, safe: boolean = true)`
+Sends a transaction off to the network. This uses the `satchel.rpc` option to choose a server. It sends the serialized form of a transaction to a bitcoin node. A callback may be provided in order to perform additional processing after the broadcast has completed. `send` uses this internally to actually broadcast the transaction. The `safe` parameter is used to choose between safe serialization or just conversion to string. In case of using OP_RETURN you must disable safe mode, and therefore bitcore-lib-cash will not give an error on broadcast.
 
 ```js
 const address = satchel.bsv.Address.fromString('1....')
@@ -248,87 +195,69 @@ console.log('transaction broadcast')
 console.log(tx)
 ```
 
-
-Sends a transaction off to the network. This uses the `satchel.rpc` option to choose a server. It sends the serialized form of a transaction to a bitcoin node. A callback may be provided in order to perform additional processing after the broadcast has completed. `send` uses this internally to actually broadcast the transaction. The `safe` parameter is used to choose between safe serialization or just conversion to string. In case of using OP_RETURN you must disable safe mode, and therefore bitcore-lib-cash will not give an error on broadcast.
-
-### `updateBalance()`
-
-```js
-let balance = await satchel.updateBalance()
-console.log('new balance is ${balance}')
-```
-
-Retrieves the logged in addresses balance and updates localStorage, these values are set:
-
+#### `updateBalance()`
+Retrieves the logged in addresses balance and updates `localStorage`, these values are set:
 - `satchel-wallet.confirmed-balance`
 - `satchel-wallet.unconfirmed-balance`
 
-
-### `updateUtxos()`
-
 ```js
-let data = await satchel.updateUtxos()
-console.log('you have ${satchel.utxos().length} utxos')
+let balance = await satchel.updateBalance()
+console.log('new balance is ', balance)
 ```
 
+#### `updateUtxos()`
 Retrieves the utxo set for the logged in address. The callback contains the json response.
+```js
+let data = await satchel.updateUtxos()
+console.log('you have ${satchel.utxos().length} utxos', data)
+```
 
-
-### `getHistory()`
-
+#### `getHistory()`
+Retrieves transaction history across address tree.
 ```js
 let response = await satchel.getHistory()
 console.log('history retrieved', response)
 ```
 
-Retrieves transaction history across address tree.
-
-
-### `new() -> string`
+#### `new() -> string`
 Creates a new HD wallet and logs in with it. Returns the new mnemonic passphrase.
-
 ```js
 let mnemonic = await satchel.new()
 console.log('wallet created', mnemonic)
 ```
 
-
-### `newDataTx(data: Array, address: string, satoshis: integer) -> txid: string`
+#### `newDataTx(data: Array, address: string, satoshis: integer) -> txid: string`
+Creates a new bsv.Transaction object from [datapay](https://github.com/unwriter/datapay) formatted array and signs it with the current child private key. Returns the Transaction object. Address and satoshis are optional inputs for creating a second output sending some BSV to the provided address.
 
 ```js
 let tx = await satchel.newDataTx(['yourdata', 'goes', 'here', '0x123'])
 console.log('Tx created and ready to broadcast:', tx.toString())
 ```
 
-Creates a new bsv.Transaction object from datapay formatted array and signs it with the current child private key. Returns the Transaction object. Address and satoshis are optional inputs for creating a second output sending some BSV to the provided address.
-
-
-### `next() -> object`
+#### `next() -> object`
+Gets the next unused address information from BitIndex. This includes the chain, num, and address. Sets `satchel.num` key in localStorage.
 
 ```js
 let nextAddressObj = await satchel.next()
 console.log('Next unused address:', nextAddressObj.address)
 ```
 
-Gets the next unused address information from BitIndex. This includes the chain, num, and address. Sets `satchel.num` key in localStorage.
-
-
-### `setMnemonicAnchor(a: Element)`
+#### `setMnemonicAnchor(a: Element)`
+Takes an HTMLAnchorElement and sets the href and download attributes to turn it into a 'download mnemonic' link. When clicked, a .txt file is downloaded containing your mnemonic passphrase. It will also remove the 'style:none' css attribute, making the button visible only when a mnemonic is available to download.
 
 ```html
-  <a id="downloadLink" style="display:none">Download Mnemonic</a>
+  <a id="downloadLink" style="display:none;">Download Mnemonic</a>
 ```
 
 ```js
 let el = document.getElementById('downloadLink')
 let nextAddressObj = await satchel.setMnemonicAnchor(el)
-console.log('Now you can click the download link')
+console.log('Now you can click the download link', nextAddressObj)
 ```
 
-Takes an HTMLAnchorElement and sets the href and download attributes to turn it into a 'download mnemonic' link. When clicked, a .txt file is downloaded containing your mnemonic passphrase. It will also remove the 'style:none' css attribute, making the button visible only when a mnemonic is available to download.
-
-
-### `queryPlanaria(query: object)`
+#### `queryPlanaria(query: object)`
+Performs a query on the [bitdb](https://bitdb.network/) database which results in a JSON object.
+Find documentation about this at [https://bitdb.network/](https://bitdb.network/)
 
 ```js
 const testQuery = {
@@ -353,11 +282,8 @@ try {
 }
 ```
 
-Performs a query on the bitdb database which results in a JSON object.
-Find documentation about this at https://bitdb.network/
-
-
-### `login(xprv: string)`
+#### `login(xprv: string)`
+Logs in with extended private key string. You will typically not need to call this yourself.
 
 ```js
 const xprv = 'xprv...';
@@ -366,71 +292,112 @@ await satchel.login(xprv)
 console.log('logged in')
 ```
 
-Logs in with extended private key string. You will typically not need to call this yourself.
-
-
-### `logout()`
+#### `logout()`
+Logs out. With normal operation you will not need to call this yourself. This is called when the logout button is clicked.
 
 ```js
 satchel.logout()
 console.log('logged out')
 ```
 
-Logs out. With normal operation you will not need to call this yourself. This is called when the logout button is clicked.
+#### `sat2bsv(sat: integer) -> string`
+Gets the bsv value of some satoshis like 13370000. Use this because Javascript's number handling will introduce small errors otherwise.
+```js
+let bitcoin = satchel.sat2bsv(10000)
+console.log('converted', bitcoin)
+```
 
+#### `bsv2sat(bsv: string) -> integer`
+Gets the satoshis of a bsv amount like 0.1337. Use this because Javascript's number handling will introduce small errors otherwise.
+```js
+let satoshis = satchel.bsv2sat(1.22)
+console.log('converted', satoshis)
+```
 
-## Helpers
+#### `receiveAddressLink(address)`
+Generates link href for a [Whats On-Chain](https://whatsonchain.com) url address.
+```js
+console.log(satchel.receiveAddressLink('1...'))
+// logs out https://whatsonchain/address/1...
+```
 
-### `sat2bsv(sat: integer) -> string`
+#### `txLink(txid)`
+Generates link href for a [Whats On-Chain](https://whatsonchain.com) tx.
+```js
+console.log(satchel.txLink('tx...'))
+// logs out https://whatsonchain/tx/tx...
+```
 
-Gets the bsv value of some satoshis like 13370000. Use this because Javascripts number handling will introduce small errors otherwise.
-
-
-### `bsv2sat(bsv: string) -> integer`
-
-Gets the satoshis of a bsv amount like 0.1337. Use this because Javascripts number handling will introduce small errors otherwise.
-
-
-### `receiveAddressLink(address)`
-
-Generates link href for a bchsvexplorer.com address.
-
-
-### `txLink(txid)`
-
-Generates link href for a bchsvexplorer.com tx.
-
-
-### `qrCode(size: integer, format: string)`
-
+#### `qrCode(size: integer, format: string)`
+Returns a url to a qr-code for the current address.
 ```js
 console.log(satchel.qrCode(300, 'svg'))
 // logs out https://api.qrserver.com/v1/create-qr-code/?data=16cbuoPEy2LkfacZYA47wA1CvThRZTjzCX&size=300x300&format=svg
 ```
 
-Returns a url to a qrcode for the current address.
+
+## Examples
+View the working [example](example/index.html) code, or [run the example locally](#run-the-example)
+
+#### Live Demos
+- [map.sv](https://map.sv/?affiliate=$satchmo) uses satchel for generating and broadcasting transactions
+- [DTV](https://dtv.cash/?affiliate=$satchmo) uses satchel for their visitors wallet solution
+
+
+## Code Standards
+Always use the language's best practices!
+
+## Usage
+There are [examples](#examples) above using satchel in the wild.
+
+#### In a Website
+1) Add satchel to your page
+```html
+<script src="/node_modules/bsv-satchel/dist/satchel.min.js">
+```
+
+2) Initialize satchel to get started
+```js
+satchel.init({
+    'bitIndexApiKey': 'BITINDEX_API_HERE',
+    'planariaApiKey': 'PLANARIA_API_HERE',
+    'feePerKb': 1337
+})
+``` 
+
+**Note:** the satchel library will be available from `window.satchel`
+
+#### As a Package
+Use as an npm package
+````bash
+$ yarn add bsv-satchel
+````
+
+## Maintainers
+[Satchmo](https://github.com/rohenaz) - [MrZ](https://github.com/mrz1836)
+
+Support the development of this project and the [Satchel](https://github.com/rohenaz/satchel?affiliate=$satchmo) team 🙏
+
+[![Donate](https://img.shields.io/badge/donate-bitcoin%20SV-brightgreen.svg)](http://handcash.to/$satchmo)
+
+## Contributing
+Feel free to dive in! [Open an issue](https://github.com/rohenaz/satchel/issues/new) or submit PRs.
 
 ## Dependencies
+Satchel is powered by several 3rd-party services and public npm packages.
 
-#### Services
-
-- https://chronos.bitdb.network/ (socket)
-- https://genesis.bitdb.network/ (tx history)
-- https://bitindex.network/ (xpub monitor)
-- https://qrserver.com/ (qr codes)
+#### 3rd-Party Services
+- [Chronos](https://chronos.bitdb.network/) (socket)
+- [Genesis](https://genesis.bitdb.network/) (tx history)
+- [Planaria](https://planaria.network/) (planaria)
+- [BitIndex](https://bitindex.network/) (xpub monitor)
+- [QR Server](https://qrserver.com/) (qr codes)
 
 #### Node Packages
+- [bsv](https://github.com/moneybutton/bsv) (bsv library)
+- [satoshi-bitcoin](https://github.com/dawsbot/satoshi-bitcoin) (conversions)
+- [qrcode-svg](https://github.com/papnkukn/qrcode-svg) (qr codes)
+- [local-web-server](https://github.com/lwsjs/local-web-server) (dev)
 
-- https://github.com/moneybutton/bsv
-- https://github.com/dawsbot/satoshi-bitcoin
-- https://github.com/papnkukn/qrcode-svg
-- https://github.com/lwsjs/local-web-server (dev)
-
-## Library Access
-
-##### `moneybutton/bsv`
-Available at `satchel.bsv`.
-
-
-##### `moneybutton/mnemonic`
-Available at `satchel.Mnemonic`
+## License
+[![License](https://img.shields.io/badge/license-Open%20BSV-brightgreen.svg?style=flat)](/LICENSE)
