@@ -13,6 +13,15 @@ const dustLimit = 546
 // Fee per kilobyte
 const feePerKb = 1000
 
+// Used for calculating estimated fees
+const feeEstimatedNumber = 1.4
+
+// BSV Explorer service provider
+const explorerProvider = 'https://whatsonchain.com'
+
+// QR Code service provider
+const qrCodeProvider = 'https://api.qrserver.com/v1/'
+
 // Initialize the application
 const app = {
   bitIndexApiKey: '',
@@ -51,186 +60,64 @@ const bitindexHeader = () => {
   return header
 }
 
-// Configure the application
-// app.bitIndexApiKey = ''
-// app.bsv = bsv
-// app.mnemonic = Mnemonic
-// app.feePerKb = 1000
-// app.rpc = 'https://api.bitindex.network'
-// app.planariaApiKey = ''
-// app.updateDebounce = 10000
-
-// app.planariaUrl = 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/'
-
-// this must be set to enable bitsocket
-// app.bitsocketUrl = 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/'
-// app.debug = false
-
-// this must be set to enable bitsocket
-// app.bitsocketCallback = null
-// app.socket = null
-
-// pass a callback to init
-// wallet listens to socket on login
-// fires the callback when anything is received
-app.bitsocketListener = (callback = app.bitsocketCallback) => {
-  if (!app.bitsocketUrl) { throw new Error('Error: bitsocketUrl is not defined') }
-  if (!app.bitsocketCallback) { throw new Error('Error: bitsocketCallback is not defined') }
-
-  const q = app.monitorAddressQuery([app.address().toString(), app.changeAddress().toString()])
-  const b64 = btoa(JSON.stringify(q))
-  const url = app.bitsocketUrl + b64
-
-  if (app.debug) {
-    console.info('Satchel: Initialized bitsocket listener. URL', app.bitsocketUrl, 'query:', q)
-  }
-
-  app.socket = new EventSource(url)
-  app.socket.onmessage = async (e) => {
-    let r = JSON.parse(e.data)
-
-    if (app.debug) {
-      console.info('Satchel: Bitsocket message', r)
-    }
-
-    if (r.type === 't') {
-      const tx = r.data[0]
-      let sats = 0
-
-      for (const input of tx.in) {
-        if (input.e.a === app.address().toString() ||
-          input.e.a === app.changeAddress().toString()) {
-          // handle outgoing tx
-          sats += input.e.v
-          localStorage.setItem('satchel.confirmed-balance', '0')
-          let unconfirmedBalance = app.balance() - sats
-          localStorage.setItem('satchel.unconfirmed-balance', unconfirmedBalance.toString())
-
-          // wait a second
-          await sleep(1000)
-          // Get next address
-          await app.next()
-          // Update Balance
-          await app.updateBalance()
-          // Update UTXOs
-          await app.updateUtxos()
-
-          if (callback) { callback(tx) }
-        }
-      }
-
-      sats = 0
-      for (const out of tx.out) {
-        if (out.e.a === app.address().toString() ||
-          out.e.a === app.changeAddress().toString()) {
-          // handle incoming tx
-          sats += out.e.v
-          localStorage.setItem('satchel.unconfirmed-balance', app.unconfirmedBalance() + sats)
-
-          // wait a second
-          await sleep(1000)
-
-          // Get next address
-          await app.next()
-          // Update Balance
-          await app.updateBalance()
-          // Update UTXOs
-          await app.updateUtxos()
-
-          if (callback) { callback(tx) }
-        }
-      }
-    }
-  }
-}
-
-app.estimateFee = (tx) => {
-  tx.fee(defaults.fee).change(app.changeAddress())
-  if (options.pay && options.pay.fee) {
-    tx.fee(options.pay.fee)
-  } else {
-    let estSize = Math.ceil(tx._estimateSize() * 1.4)
-    tx.fee(estSize)
-  }
-}
-
-app.getHistory = async () => {
-  if (!app.xPub()) { return [] }
-  let url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/txs'
-
-  // Bitindex api key
-  const header = {
-    headers: bitindexHeader()
-  }
-  let r = await fetch(url, header)
-
-  let res = await r.json()
-
-  return app.queryPlanaria(app.txsQuery(res.map(record => {
-    return record.txid
-  })))
-}
-
-app.init = async (options = {}) => {
-  // overwrite any variables in app passed from options
-  for (const o of Object.entries(options)) {
-    app[o[0]] = o[1]
-  }
-
-  try {
-    if (app.isLoggedIn()) {
-      await app.updateAll()
-      if (app.bitsocketListener) {
-        await app.bitsocketListener()
-      }
-    }
-  } catch (e) {
-    console.error('failed to initialize', e)
-    return new Error('failed to initialize')
-  }
-}
-
+// sat2bsv converts satoshis to bitcoin
 app.sat2bsv = (sat) => sb.toBitcoin(sat)
 
+// bsv2sat converts bitcoin to satoshis
 app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
-app.receiveAddressLink = (address) => `https://whatsonchain.com/address/${address}`
+// receiveAddressLink sets the link to view the address via explorer
+app.receiveAddressLink = (address) => explorerProvider + `/address/${address}`
 
-app.txLink = (txid) => `https://whatsonchain.com/tx/${txid}`
+// txLink sets the tx explorer link
+app.txLink = (txid) => explorerProvider + `/tx/${txid}`
 
-// returns a bsv.Address
+// changeAddress returns a bsv.Address
 app.changeAddress = () => {
   let changeKey = app.lookupPrivateKey(1, localStorage.getItem('satchel.num'))
   return bsv.Address.fromPrivateKey(changeKey, 'livenet')
 }
 
-// returns a bsv.Address
+// address returns a bsv.Address
 app.address = () => {
   let pubKey = app.publicKey()
   return bsv.Address.fromPublicKey(pubKey, 'livenet')
 }
 
-app.balance = () => { return app.confirmedBalance() + app.unconfirmedBalance() }
+// balance returns the total balance (confirmed and unconfirmed)
+app.balance = () => {
+  return app.confirmedBalance() + app.unconfirmedBalance()
+}
 
+// confirmedBalance returns just the confirmed balance
 app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
 
-app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
-
-app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
-
-app.mnemonic = () => localStorage.getItem('satchel.mnemonic')
-
-app.timestamp = () => localStorage.getItem('satchel.timestamp')
-
+// unconfirmedBalance returns just the unconfirmed balance
 app.unconfirmedBalance = () => parseInt(localStorage.getItem('satchel.unconfirmed-balance') || 0)
 
+// hdPrivateKey gets a hd private key
+app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
+
+// hdPublicKey gets a hd xpub key
+app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
+
+// mnemonic returns the local mnemonic
+app.mnemonic = () => localStorage.getItem('satchel.mnemonic')
+
+// timestamp returns the local stored timestamp
+app.timestamp = () => localStorage.getItem('satchel.timestamp')
+
+// xPriv returns the local stored xpriv
 app.xPriv = () => localStorage.getItem('satchel.xpriv')
 
+// xPub returns the local stored xpub
 app.xPub = () => localStorage.getItem('satchel.xpub')
 
+// privateKey returns the current private key
 app.privateKey = () => {
   // Get derived HD number
   let num = localStorage.getItem('satchel.num') || 0
+
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
     console.error('login first', num)
@@ -240,11 +127,13 @@ app.privateKey = () => {
   return app.lookupPrivateKey(0, num)
 }
 
+// publicKey returns the current public key
 app.publicKey = () => app.privateKey().publicKey
 
+// isLoggedIn check if user is logged into the wallet
 app.isLoggedIn = () => !!app.xPriv()
 
-// returns a bsv.PrivateKey
+// lookupPrivateKey returns a bsv.PrivateKey
 app.lookupPrivateKey = (chain, num) => {
   let hdPrivateKey = app.hdPrivateKey()
   if (!hdPrivateKey) {
@@ -253,35 +142,37 @@ app.lookupPrivateKey = (chain, num) => {
   return hdPrivateKey.deriveChild('m/' + chain + '/' + num).privateKey
 }
 
-// a wallet can have many utxos
-// consume the top `max` utxos by value
+// utxos a wallet can have many utxos consume the top `max` utxos by value
 app.utxos = (max = 5) => {
   let utxos = JSON.parse(localStorage.getItem('satchel.utxo') || '[]')
 
-  if (!utxos || !max) { return utxos }
+  if (!utxos || !max) {
+    return utxos
+  }
+
   return utxos.sort((a, b) => {
     return a.satoshis > b.satoshis ? -1 : 1
   }).slice(0, max)
 }
 
-// returns an svg qr code of current HD address
+// qrCode returns an svg qr code of current HD address
 app.qrCode = (size = 300, format = 'svg') => {
-  return 'https://api.qrserver.com/v1/create-qr-code/?' +
+  return qrCodeProvider + 'create-qr-code/?' +
     '&qzone=1' +
     '&data=' + satchel.address().toString() +
     '&size=' + size + 'x' + size +
     '&format=' + format
 }
 
-// generate a new mnemonic and logs in
+// new generates a new mnemonic and logs in (english only for now)
+// todo: allow multiple language support
 app.new = async () => {
   let mnemonic = Mnemonic.fromRandom()
   await app.login(mnemonic.toString())
   return mnemonic
 }
 
-// Call next address BitIndex endpoint and set num
-// Returns the full API response
+// next calls next address BitIndex endpoint and set num and returns the full API response
 app.next = async () => {
   if (!app.xPub()) { return [] }
   let url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/addrs/next'
@@ -290,9 +181,12 @@ app.next = async () => {
   const header = {
     headers: bitindexHeader()
   }
-  let r = await fetch(url, header)
 
+  let r = await fetch(url, header)
   let res = await r.json()
+
+  // todo: check the response and make sure its valid
+
   let num = 0
   if (res instanceof Array) {
     num = res.filter(a => { return a.chain === 0 })[0].num
@@ -302,8 +196,7 @@ app.next = async () => {
   return res
 }
 
-// Pass an element or querySelector to apply mnemonic download href
-// and un-hide element
+// setMnemonicAnchor pass an element or querySelector to apply mnemonic download href and un-hide element
 app.setMnemonicAnchor = (a) => {
   let el
   if (typeof a === 'string') {
@@ -325,10 +218,13 @@ app.setMnemonicAnchor = (a) => {
   }
 }
 
-// Used internally by setMnemonicAnchor
+// downloadHref Used internally by setMnemonicAnchor
 app.downloadHref = () => {
   let mnemonic = app.mnemonic()
-  if (!mnemonic) { return }
+  if (!mnemonic) {
+    return
+  }
+
   const blob = new window.Blob([mnemonic], {
     type: 'text/plain'
   })
@@ -336,9 +232,11 @@ app.downloadHref = () => {
   return URL.createObjectURL(blob)
 }
 
-// Login with xPriv or Mnemonic
+// login with xPriv or Mnemonic
 app.login = async (xprvOrMnemonic) => {
-  if (!xprvOrMnemonic) { throw new Error('Private key required') }
+  if (!xprvOrMnemonic) {
+    throw new Error('Private key required')
+  }
 
   let hdPrivateKey
 
@@ -358,10 +256,12 @@ app.login = async (xprvOrMnemonic) => {
 
   await app.updateAll()
 
-  if (!app.socket && app.bitsocketCallback) { app.bitsocketListener() }
+  if (!app.socket && app.bitsocketCallback) {
+    app.bitsocketListener()
+  }
 }
 
-// Updates if app.timestamp is older than app.updateDebounce
+// updateAll updates if app.timestamp is older than app.updateDebounce
 app.updateAll = async () => {
   let ts = app.timestamp()
   if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
@@ -373,8 +273,9 @@ app.updateAll = async () => {
   }
 }
 
-// clears keys from localStorage
+// logout clears keys from localStorage
 app.logout = () => {
+  // Find all keys
   const localstorageKeys = []
   for (let i = 0; i < localStorage.length; ++i) {
     if (localStorage.key(i).substring(0, 7) === 'satchel') {
@@ -382,15 +283,18 @@ app.logout = () => {
     }
   }
 
+  // Remove all keys
   for (const k of localstorageKeys) {
     localStorage.removeItem(k)
   }
 
+  // Close any open sockets
   if (app.socket) {
     app.socket.close()
   }
 }
 
+// newDataTx new data transaction, returns a new tx
 app.newDataTx = async (data, address, satoshis) => {
   if (!app.isLoggedIn()) {
     throw new Error('satchel: sending without being logged in')
@@ -421,11 +325,13 @@ app.newDataTx = async (data, address, satoshis) => {
   return tx
 }
 
+// sendDataTx send a data tx - broadcasts tx
 app.sendDataTx = async (data, address, satoshis) => {
   let tx = await app.newDataTx(data, address, satoshis)
   return app.broadcastTx(tx)
 }
 
+// send a normal tx and broadcasts tx
 app.send = async (address, satoshis) => {
   if (!app.isLoggedIn()) {
     throw new Error('satchel: sending without being logged in')
@@ -451,6 +357,7 @@ app.send = async (address, satoshis) => {
   return app.broadcastTx(tx)
 }
 
+// cleanTxDust cleans the tx dust
 app.cleanTxDust = (tx) => {
   for (let i = 0; i < tx.outputs.length; ++i) {
     if (tx.outputs[i]._satoshis > 0 && tx.outputs[i]._satoshis < dustLimit) {
@@ -462,6 +369,7 @@ app.cleanTxDust = (tx) => {
   return tx
 }
 
+// addOpReturnData adds op_return data to txt
 app.addOpReturnData = (tx, data) => {
   const script = new bsv.Script()
   script.add(bsv.Opcode.OP_RETURN)
@@ -484,6 +392,7 @@ app.addOpReturnData = (tx, data) => {
   return tx
 }
 
+// broadcastTx broadcast the tx
 app.broadcastTx = async (tx, options = {
   safe: true, // check serialization
   testing: false // if true dont actually broadcast to network
@@ -516,6 +425,7 @@ app.broadcastTx = async (tx, options = {
   }
 }
 
+// updateBalance update the balance from rpc provider
 app.updateBalance = async () => {
   const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/status'
   const header = {
@@ -536,6 +446,7 @@ app.updateBalance = async () => {
   return app.balance()
 }
 
+// updateUtxos update utxos from rpc provider
 app.updateUtxos = async () => {
   const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/utxo'
   const header = {
@@ -562,6 +473,7 @@ app.updateUtxos = async () => {
   return utxos
 }
 
+// queryPlanaria queries planaria
 app.queryPlanaria = async (q) => {
   if (app.planariaApiKey === '') {
     throw new Error('planariaApiKey option not set')
@@ -584,7 +496,7 @@ app.queryPlanaria = async (q) => {
   }
 }
 
-// Planarium + BitSocket queries for monitoring logged in address
+// monitorAddressQuery Planarium + BitSocket queries for monitoring logged in address
 app.monitorAddressQuery = (addressList) => ({
   v: 3,
   q: {
@@ -597,6 +509,7 @@ app.monitorAddressQuery = (addressList) => ({
   }
 })
 
+// txsQuery transaction query for planaria
 app.txsQuery = (txList, limit, page = 1) => ({
   v: 3,
   q: {
@@ -607,5 +520,150 @@ app.txsQuery = (txList, limit, page = 1) => ({
     skip: ((page - 1) * limit)
   }
 })
+
+// bitsocketListener pass a callback to init wallet listens to socket on login
+// fires the callback when anything is received
+app.bitsocketListener = (callback = app.bitsocketCallback) => {
+  if (!app.bitsocketUrl) {
+    throw new Error('Error: bitsocketUrl is not defined')
+  }
+  if (!app.bitsocketCallback) {
+    throw new Error('Error: bitsocketCallback is not defined')
+  }
+
+  const q = app.monitorAddressQuery([app.address().toString(), app.changeAddress().toString()])
+  const b64 = btoa(JSON.stringify(q))
+  const url = app.bitsocketUrl + b64
+
+  if (app.debug) {
+    console.info('Satchel: Initialized bitsocket listener. URL:', app.bitsocketUrl, 'query:', q)
+  }
+
+  app.socket = new EventSource(url)
+  app.socket.onmessage = async (e) => {
+    let r = JSON.parse(e.data)
+
+    if (app.debug) {
+      console.info('Satchel: Bitsocket message', r)
+    }
+
+    if (r.hasOwnProperty('type') && r.type === 't') {
+      const tx = r.data[0]
+      let sats = 0
+
+      for (const input of tx.in) {
+        if (input.e.a === app.address().toString() ||
+          input.e.a === app.changeAddress().toString()) {
+          // handle outgoing tx
+          sats += input.e.v
+          let unconfirmedBalance = app.balance() - sats
+
+          // Set in local storage
+          localStorage.setItem('satchel.confirmed-balance', '0')
+          localStorage.setItem('satchel.unconfirmed-balance', unconfirmedBalance.toString())
+
+          // wait a second
+          await sleep(1000)
+
+          // Get next address
+          await app.next()
+
+          // Update Balance
+          await app.updateBalance()
+
+          // Update UTXOs
+          await app.updateUtxos()
+
+          if (callback) {
+            callback(tx)
+          }
+        }
+      }
+
+      sats = 0
+      for (const out of tx.out) {
+        if (out.e.a === app.address().toString() ||
+          out.e.a === app.changeAddress().toString()) {
+          // handle incoming tx
+          sats += out.e.v
+          let unconfirmedBalance = app.unconfirmedBalance() + sats
+
+          // Set in local storage
+          localStorage.setItem('satchel.unconfirmed-balance', unconfirmedBalance.toString())
+
+          // wait a second
+          await sleep(1000)
+
+          // Get next address
+          await app.next()
+
+          // Update Balance
+          await app.updateBalance()
+
+          // Update UTXOs
+          await app.updateUtxos()
+
+          if (callback) {
+            callback(tx)
+          }
+        }
+      }
+    }
+  }
+}
+
+// estimateFee sets the estimated fee on a given tx
+app.estimateFee = (tx) => {
+  tx.fee(defaults.fee).change(app.changeAddress())
+  if (options.pay && options.pay.fee) {
+    tx.fee(options.pay.fee)
+  } else {
+    let estSize = Math.ceil(tx._estimateSize() * feeEstimatedNumber)
+    tx.fee(estSize)
+  }
+}
+
+// getHistory will return the history for the current wallet
+app.getHistory = async () => {
+  if (!app.xPub()) {
+    return []
+  }
+
+  let url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/txs'
+
+  // Bitindex api key
+  const header = {
+    headers: bitindexHeader()
+  }
+
+  let r = await fetch(url, header)
+  let res = await r.json()
+
+  // todo: error handling? make sure response is valid?
+
+  return app.queryPlanaria(app.txsQuery(res.map(record => {
+    return record.txid
+  })))
+}
+
+// init starts the satchel application
+app.init = async (options = {}) => {
+  // overwrite any variables in app passed from options
+  for (const o of Object.entries(options)) {
+    app[o[0]] = o[1]
+  }
+
+  try {
+    if (app.isLoggedIn()) {
+      await app.updateAll()
+      if (app.bitsocketListener) {
+        await app.bitsocketListener()
+      }
+    }
+  } catch (e) {
+    console.error('failed to initialize', e)
+    return new Error('failed to initialize')
+  }
+}
 
 window.satchel = app
