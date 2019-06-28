@@ -87,7 +87,10 @@ const makeTx = async () => {
 
 const broadcast = async () => {
   try {
-    await satchel.broadcastTx(activeTx)
+    let tx = await satchel.broadcastTx(activeTx)
+    let div = document.getElementById('successDiv')
+    div.innerHTML = 'Success! <a href="' + 
+      satchel.txLink(tx.txid) + '" target="blank">' + tx.txid + '</a>'
   } catch (e) {
     console.error(e)
   }
@@ -102,9 +105,12 @@ const getHistory = async () => {
   for (let i in items) {
     let item = items[i]
     console.log('history item', item)
-    let itemDiv = document.createElement('div')
-    itemDiv.innerText = item.tx.h
-    historyDiv.appendChild(itemDiv)
+    let anchor = document.createElement('a')
+    anchor.href = satchel.txLink(item.tx.h)
+    anchor.target = '_blank'
+    anchor.innerText = item.tx.h
+    historyDiv.appendChild(anchor)
+    historyDiv.appendChild(document.createElement('br'))
   }
   document.body.appendChild(historyDiv)
 }
@@ -123,7 +129,9 @@ const walletLoaded = async () => {
   // Update the UI with wallet info
   let div = document.createElement('div')
   let addressStr = satchel.address().toString()
-  div.innerHTML = 'Address:' + addressStr + '<br />Balance:' + satchel.balance()
+  div.innerHTML = 'Address:' + addressStr + '<br />'
+  div.innerHTML += 'Balance:' + satchel.balance() + '<br /><br />'
+  div.innerHTML += '<img src="' + satchel.qrCode() + '" alt="Deposit Address" /><br /><br />'
   document.getElementById('wallet').innerHTML = ''
   document.getElementById('wallet').appendChild(div)
 
