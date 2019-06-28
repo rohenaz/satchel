@@ -218,8 +218,8 @@ app.utxos = (max = 5) => {
 }
 
 // returns an svg qrcode of current HD address
-app.qrCode = async () => {
-  return 'https://api.qrserver.com/v1/create-qr-code/?data=' + satchel.address().toString() + '&size=300x300&format=svg'
+app.qrCode = (size=300, format='svg') => {
+  return 'https://api.qrserver.com/v1/create-qr-code/?data=' + satchel.address().toString() + '&size=' + size + 'x' + size + '&format=' + format
 }
 
 // generate a new mnemonic and logs in

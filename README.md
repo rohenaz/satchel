@@ -9,24 +9,8 @@
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 
-
 Satchel is a light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software.
 
-
-## Dependencies
-
-#### Services
-
-- https://chronos.bitdb.network/ (socket)
-- https://genesis.bitdb.network/ (tx history)
-- https://bitindex.network/ (xpub monitor)
-
-#### Node Packages
-
-- https://github.com/moneybutton/bsv
-- https://github.com/dawsbot/satoshi-bitcoin
-- https://github.com/papnkukn/qrcode-svg
-- https://github.com/lwsjs/local-web-server (dev)
 
 ## Prerequisites
 
@@ -392,15 +376,29 @@ Generates link href for a bchsvexplorer.com address.
 Generates link href for a bchsvexplorer.com tx.
 
 
-### `qrCode()`
+### `qrCode(size: integer, format: string)`
 
 ```js
-console.log(satchel.qrCode())
-// logs out https://api.qrcode.com/address/something.svg
+console.log(satchel.qrCode(300, 'svg'))
+// logs out https://api.qrserver.com/v1/create-qr-code/?data=16cbuoPEy2LkfacZYA47wA1CvThRZTjzCX&size=300x300&format=svg
 ```
 
 Returns a url to a qrcode for the current address.
 
+## Dependencies
+
+#### Services
+
+- https://chronos.bitdb.network/ (socket)
+- https://genesis.bitdb.network/ (tx history)
+- https://bitindex.network/ (xpub monitor)
+
+#### Node Packages
+
+- https://github.com/moneybutton/bsv
+- https://github.com/dawsbot/satoshi-bitcoin
+- https://github.com/papnkukn/qrcode-svg
+- https://github.com/lwsjs/local-web-server (dev)
 
 ## Library Access
 

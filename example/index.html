@@ -6,6 +6,11 @@
       body {
         font-family: 'Tahoma';
         font-size: 1rem;
+        text-align: center;
+      }
+      button {
+        padding: .5rem;
+        font-size: 1rem;
       }
     </style>
     <script src="../dist/satchel.min.js"></script>
@@ -19,6 +24,7 @@
     <a id="downloadLink" style="display: none;" download="mnemonic-satchel.txt">Download Mnemonic</a>
     <br />
     <br />
+    <h1>Build OP_RETURN Tx</h1>
     <label for="data">OP_RETURN Data:</label><br />
     <textarea name="data" id="data" style="width:600px; height:300px"></textarea>
     <br />
@@ -32,6 +38,7 @@
     <br />
     <br />
     <button onclick="broadcast()">Broadcast</button>
+    <div id="successDiv"></div>
 
     <h1>Tx History</h1>
 
