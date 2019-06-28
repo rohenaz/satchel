@@ -271,8 +271,11 @@ app.setMnemonicAnchor = (a) => {
     throw new Error('Cant find anchor element')
   }
   el.attributes['download'] = 'mnemonic-satchel.txt'
-  el.href = app.downloadHref()
-  el.style.display = 'unset'
+  let href = app.downloadHref()
+  if (href) {
+    el.href = href
+    el.style.display = 'unset'
+  }
 }
 
 // Used internally by setMnemonicAnchor
