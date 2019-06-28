@@ -1,6 +1,6 @@
 {
   "name": "bsv-satchel",
-  "version": "0.2.8",
+  "version": "0.2.9",
   "description": "A Bitcoin SV js wallet library",
   "dependencies": {
     "bsv": "^0.27.1",
