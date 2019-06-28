@@ -9,7 +9,7 @@
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
 
 
-Satchel is a light-weight in-browser [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software.
+Satchel is a minimal [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet for the web. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network actiity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software. It relies on a few [external services](#services) to keep the size as low as possible.
 
 
 ## Prerequisites
@@ -42,7 +42,7 @@ satchel.init({
 
 #### Live Demo
 
-[DTV](https://dtv.cash)
+[map.sv](https://map.sv)
 
 
 ## Methods
@@ -300,7 +300,7 @@ let nextAddressObj = await satchel.setMnemonicAnchor(el)
 console.log('Now you can click the download link')
 ```
 
-Takes an HTMLAnchorElement and sets the href and download attributes to turn it into a 'download mnemonic' link. When clicked, a .txt files is downloaded containing your mnemonic passphrase. It will also remove the 'style:none' css attribute, making the button visible only when a mnemonic is available to download.
+Takes an HTMLAnchorElement and sets the href and download attributes to turn it into a 'download mnemonic' link. When clicked, a .txt file is downloaded containing your mnemonic passphrase. It will also remove the 'style:none' css attribute, making the button visible only when a mnemonic is available to download.
 
 
 ### `queryPlanaria(query: object)`
