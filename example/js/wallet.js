@@ -1,10 +1,10 @@
-// When the document content finished loading, fire initialize satchel
+// Wait for page to load, then initialize satchel
 document.addEventListener('DOMContentLoaded', async () => {
   document.querySelector('textarea').value = 'loading...'
   await initSatchel()
 })
 
-// activeTx
+// activeTx flag
 let activeTx
 
 // defaultOpReturnData default op return data
@@ -64,7 +64,7 @@ const initSatchel = async () => {
   await walletLoaded()
 }
 
-// loginPrompt for login
+// loginPrompt prompts for login
 const loginPrompt = async () => {
   let login = prompt('Enter a 12 word mnemonic')
   if (!satchel.login) {
@@ -92,13 +92,13 @@ const makeTx = async () => {
   activeTx = tx
 }
 
-// broadcast a tx
+// broadcast a bitcoin tx
 const broadcast = async () => {
   try {
     let tx = await satchel.broadcastTx(activeTx)
     let div = document.getElementById('successDiv')
     div.innerHTML = 'Success! <a href="' + 
-      satchel.txLink(tx.txid) + '" target="blank">' + tx.txid + '</a>'
+      satchel.txLink(tx.txid) + '" target="_blank">' + tx.txid + '</a>'
   } catch (e) {
     console.error(e)
   }
