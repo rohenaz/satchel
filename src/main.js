@@ -74,7 +74,8 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           // handle outgoing tx
           sats += input.e.v
           localStorage.setItem('satchel.confirmed-balance', '0')
-          localStorage.setItem('satchel.unconfirmed-balance', app.balance() - sats)
+          let unconfirmedBalance = app.balance() - sats
+          localStorage.setItem('satchel.unconfirmed-balance', unconfirmedBalance.toString())
 
           // wait a second
           await sleep(1000)
@@ -136,7 +137,9 @@ app.getHistory = async () => {
 
   let res = await r.json()
 
-  return await app.queryPlanaria(app.txsQuery(res.map(record => { return record.txid })))
+  return app.queryPlanaria(app.txsQuery(res.map(record => {
+    return record.txid
+  })));
 }
 
 app.init = async (options = {}) => {
@@ -153,7 +156,8 @@ app.init = async (options = {}) => {
       }
     }
   } catch (e) {
-    return new Error('Failed to initialize', e)
+    console.error('failed to initialize',e)
+    return new Error('failed to initialize')
   }
 }
 
@@ -165,12 +169,12 @@ app.txLink = (txid) => `https://whatsonchain.com/tx/${txid}`
 // returns a bsv.Address
 app.changeAddress = () => {
   let changeKey = app.lookupPrivateKey(1, localStorage.getItem('satchel.num'))
-  return bsv.Address.fromPrivateKey(changeKey)
+  return bsv.Address.fromPrivateKey(changeKey,'livenet')
 }
 // returns a bsv.Address
 app.address = () => {
-  let pubkey = app.publicKey()
-  return bsv.Address.fromPublicKey(pubkey)
+  let pubKey = app.publicKey()
+  return bsv.Address.fromPublicKey(pubKey,'livenet')
 }
 app.balance = () => { return app.confirmedBalance() + app.unconfirmedBalance() }
 app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
@@ -187,7 +191,8 @@ app.privateKey = () => {
   let num = localStorage.getItem('satchel.num') || 0
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
-    throw new Error('log in first', num)
+    console.error("login first", num)
+    throw new Error('login first')
   }
 
   return app.lookupPrivateKey(0, num)
@@ -214,7 +219,7 @@ app.utxos = (max = 5) => {
   }).slice(0, max)
 }
 
-// returns an svg qrcode of current HD address
+// returns an svg qr code of current HD address
 app.qrCode = (size = 300, format = 'svg') => {
   return 'https://api.qrserver.com/v1/create-qr-code/?' +
     '&qzone=1' +
@@ -248,12 +253,12 @@ app.next = async () => {
     num = res.filter(a => { return a.chain === 0 })[0].num
   }
 
-  localStorage.setItem('satchel.num', num)
+  localStorage.setItem('satchel.num', num.toString())
   return res
 }
 
 // Pass an element or querySelector to apply mnemonic download href
-// and unhide element
+// and un-hide element
 app.setMnemonicAnchor = (a) => {
   let el
   if (typeof a === 'string') {
@@ -297,7 +302,7 @@ app.login = async (xprvOrMnemonic) => {
       throw new Error('Invalid mnemonic')
     }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
-    hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed())
+    hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed(),'livenet')
     localStorage.setItem('satchel.mnemonic', xprvOrMnemonic)
   } else {
     hdPrivateKey = bsv.HDPrivateKey.fromString(xprvOrMnemonic)
@@ -315,8 +320,8 @@ app.login = async (xprvOrMnemonic) => {
 app.updateAll = async () => {
   let ts = app.timestamp()
   if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
-    // Gets next keypair position so we can derive keys
-    localStorage.setItem('satchel.timestamp', new Date().getTime())
+    // Gets next key pair position so we can derive keys
+    localStorage.setItem('satchel.timestamp', new Date().getTime().toString())
     await app.next()
     await app.updateBalance()
     await app.updateUtxos()
@@ -346,11 +351,11 @@ app.newDataTx = async (data, address, satoshis) => {
     throw new Error('satchel: sending without being logged in')
   }
 
-  let tx = new satchel.bsv.Transaction()
+  let tx = new satchel.bsv.Transaction() // todo: missing parameter?
   tx.from(app.utxos())
 
   if (address && satoshis > 0) {
-    if (!bsv.Address.isValid(address)) {
+    if (!bsv.Address.isValid(address,'livenet','pubkey')) {
       throw new Error('satchel: invalid address')
     }
     tx.to(address, satoshis)
@@ -365,7 +370,7 @@ app.newDataTx = async (data, address, satoshis) => {
   let utxos = app.utxos()
   for (let i in utxos) {
     let pk = app.lookupPrivateKey(utxos[i].chain, utxos[i].num)
-    tx.sign(pk)
+    tx.sign(pk) // todo: missing second parameter
   }
 
   return tx
@@ -373,7 +378,7 @@ app.newDataTx = async (data, address, satoshis) => {
 
 app.sendDataTx = async (data, address, satoshis) => {
   let tx = await app.newDataTx(data, address, satoshis)
-  return await app.broadcastTx(tx)
+  return app.broadcastTx(tx);
 }
 
 app.send = async (address, satoshis) => {
@@ -381,11 +386,11 @@ app.send = async (address, satoshis) => {
     throw new Error('satchel: sending without being logged in')
   }
 
-  if (!bsv.Address.isValid(address)) {
+  if (!bsv.Address.isValid(address,'livenet','pubkey')) {
     throw new Error('satchel: invalid address')
   }
 
-  let tx = new bsv.Transaction()
+  let tx = new bsv.Transaction() // todo: missing parameter?
   tx.from(app.utxos())
   tx.to(address, satoshis)
   tx.feePerKb(app.feePerKb)
@@ -395,10 +400,10 @@ app.send = async (address, satoshis) => {
 
   let utxos = app.utxos()
   for (let i in utxos) {
-    tx.sign(app.lookupPrivateKey(utxos[i].chain, utxos[i].num))
+    tx.sign(app.lookupPrivateKey(utxos[i].chain, utxos[i].num)) // todo: missing second parameter
   }
 
-  return await app.broadcastTx(tx)
+  return app.broadcastTx(tx)
 }
 
 app.cleanTxDust = (tx) => {
@@ -478,6 +483,8 @@ app.updateBalance = async () => {
   } catch (e) {
     throw new Error(e)
   }
+
+  // todo: check that we got the right values (confirmed, unconfirmed, etc)
 
   localStorage.setItem('satchel.confirmed-balance', addrInfo.confirmed)
   localStorage.setItem('satchel.unconfirmed-balance', addrInfo.unconfirmed)
