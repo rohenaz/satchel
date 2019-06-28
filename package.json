@@ -1,11 +1,36 @@
 {
-  "name": "bsv-satchel",
-  "version": "0.2.9",
-  "description": "A Bitcoin SV js wallet library",
+  "name": "satchel",
+  "version": "0.0.1",
+  "description": "Satchel is a minimal Bitcoin SV headless HD wallet for the web",
+  "author": "Satchmo",
+  "contributors": [
+    {
+      "name": "Satchmo",
+      "url": "https://github.com/rohenaz/"
+    },
+    {
+      "name": "MrZ",
+      "url": "https://github.com/mrz1836/"
+    }
+  ],
+  "bugs": "https://github.com/rohenaz/satchel/issues",
+  "homepage": "https://github.com/rohenaz/satchel",
   "dependencies": {
     "bsv": "^0.27.1",
     "satoshi-bitcoin": "^1.0.4"
   },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/rohenaz/satchel/"
+  },
+  "keywords": [
+    "satchel",
+    "wallet",
+    "bsv",
+    "bitcoin",
+    "bitcoinsv",
+    "hd"
+  ],
   "devDependencies": {
     "webpack": "^4.33.0",
     "webpack-cli": "^3.3.4"
@@ -27,6 +52,5 @@
       "no-template-curly-in-string": "off"
     }
   },
-  "author": "Satchmo",
-  "license": "MIT"
+  "license": "Open BSV"
 }
