@@ -59,7 +59,7 @@ $ yarn serve
 
 ## Documentation
 
-##### Satchel Options
+### Satchel: Options
 Below are all the options available to configure satchel.
 
 | option | description | required | type | default|
@@ -74,7 +74,7 @@ Below are all the options available to configure satchel.
 | txsQuery | Data to query Planaria with when getHistory is called. | | function | `() => txsQuery()` |
 | bitsocketListener | This creates a bitsocket on login and closes on delete. Used for watching new transactions. Set to `null` if you don't want it to run. | | function | `() => {} -> EventSource (see code) ` |
 
-#### Access to Included Libraries
+### Satchel: Included Libraries
 All the power from included libraries is at your finger tips:
 
 [`moneybutton/bsv`](https://github.com/moneybutton/bsv) is available at `satchel.bsv`.
@@ -82,7 +82,7 @@ All the power from included libraries is at your finger tips:
 [`moneybutton/mnemonic`](https://github.com/moneybutton/bsv-mnemonic) is available at `satchel.Mnemonic`
 
 
-## Satchel: Methods
+### Satchel: Methods
 
 #### `address() -> bsv.Address`
 Retrieves the Address object associated with logged in user.
