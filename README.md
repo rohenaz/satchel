@@ -54,29 +54,7 @@ satchel.init({
 })
 ```
 
-## Build Source
-
-##### Install
-
-```bash
-git clone https://github.com/rohenaz/satchel.git
-cd satchel
-yarn
-```
-
-##### Build
-
-```bash
-yarn build
-```
-
-##### Run Example
-
-```bash
-yarn serve
-```
-
-Then open your browser to http://localhost:8000/example/index.html
+[Options](#options)
 
 #### Live Demo
 
@@ -277,7 +255,7 @@ Retrieves the logged in addresses balance and updates localStorage, these values
 - `satchel-wallet.unconfirmed-balance`
 
 
-#### `updateUtxos()`
+### `updateUtxos()`
 
 ```js
 let data = await satchel.updateUtxos()
@@ -417,11 +395,11 @@ Generates link href for a bchsvexplorer.com tx.
 ### `qrCode()`
 
 ```js
-let svg = satchel.qrCode()
-document.body.appendChild(svg)
+console.log(satchel.qrCode())
+// logs out https://api.qrcode.com/address/something.svg
 ```
 
-Returns a QR Code for the current wallet address as an SVG tag.
+Returns a url to a qrcode for the current address.
 
 
 ## Library Access
@@ -433,5 +411,27 @@ Available at `satchel.bsv`.
 ##### `moneybutton/mnemonic`
 Available at `satchel.Mnemonic`
 
-##### `papnkukn/qrcode-svg`
-Available at `satchel.qrcode`
+
+## Build Source
+
+##### Install
+
+```bash
+git clone https://github.com/rohenaz/satchel.git
+cd satchel
+yarn
+```
+
+##### Build
+
+```bash
+yarn build
+```
+
+##### Run Example
+
+```bash
+yarn serve
+```
+
+Then open your browser to http://localhost:8000/example/index.html
