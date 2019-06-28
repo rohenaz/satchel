@@ -66,8 +66,8 @@ Below are all the options available to configure satchel.
 |--------|-------------|----------|------|--------|
 | bitIndexApiKey | Grab this from [BitIndex](https://bitindex.network) | :heavy_check_mark: | string | 1DGD3... |
 | planariaApiKey | Grab this from [BitDB](https://bitdb.network/v3/dashboard) | :heavy_check_mark: | string | 1XGGY... |
-| planariaUrl | Modify this if you are running a custom Planaria.  | |string |  https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/ |
-| bitsocketUrl | Modify this if you are running custom bitsocket instance.  | |string |  https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/ |
+| planariaUrl | Modify this if you are running a custom Planaria.  | |string |  https://genesis.bitdb.network/q/1Fna... |
+| bitsocketUrl | Modify this if you are running custom bitsocket instance.  | |string |  https://chronos.bitdb.network/s/1P6o.. |
 | feePerKb | Satoshis per kilobyte for fee. |  | integer |  1000 |
 | rpc | What rpc service to use for sending transactions. | | string |  https://api.bitindex.network |
 | maxUtxos | The maximum number of utxos to return when calling satchel.utxos(). Will return utxos with highest value. |  | integer | 5 |
