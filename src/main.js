@@ -40,6 +40,16 @@ const app = {
   socket: null
 }
 
+// localStorage standard keys for satchel
+const SatchelKeyConfirmedBalance = "satchel.confirmed-balance"
+const SatchelKeyMnemonic = "satchel.mnemonic"
+const SatchelKeyNum = "satchel.num"
+const SatchelKeyTimestamp = "satchel.timestamp"
+const SatchelKeyUnConfirmedBalance = "satchel.unconfirmed-balance"
+const SatchelKeyUtxo = "satchel.utxo"
+const SatchelKeyXPriv = "satchel.xpriv"
+const SatchelKeyXPub = "satchel.xpub"
+
 // Sleep - promise with a setTimeout()
 const sleep = (ms) => {
   return new Promise(resolve => setTimeout(resolve, ms))
@@ -74,7 +84,7 @@ app.txLink = (txid) => explorerProvider + `/tx/${txid}`
 
 // changeAddress returns a bsv.Address
 app.changeAddress = () => {
-  let changeKey = app.lookupPrivateKey(1, localStorage.getItem('satchel.num'))
+  let changeKey = app.lookupPrivateKey(1, localStorage.getItem(SatchelKeyNum))
   return bsv.Address.fromPrivateKey(changeKey, 'livenet')
 }
 
@@ -90,10 +100,10 @@ app.balance = () => {
 }
 
 // confirmedBalance returns just the confirmed balance
-app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
+app.confirmedBalance = () => parseInt(localStorage.getItem(SatchelKeyConfirmedBalance) || 0)
 
 // unconfirmedBalance returns just the unconfirmed balance
-app.unconfirmedBalance = () => parseInt(localStorage.getItem('satchel.unconfirmed-balance') || 0)
+app.unconfirmedBalance = () => parseInt(localStorage.getItem(SatchelKeyUnConfirmedBalance) || 0)
 
 // hdPrivateKey gets a hd private key
 app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
@@ -102,21 +112,21 @@ app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
 app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
 
 // mnemonic returns the local mnemonic
-app.mnemonic = () => localStorage.getItem('satchel.mnemonic')
+app.mnemonic = () => localStorage.getItem(SatchelKeyMnemonic)
 
 // timestamp returns the local stored timestamp
-app.timestamp = () => localStorage.getItem('satchel.timestamp')
+app.timestamp = () => localStorage.getItem(SatchelKeyTimestamp)
 
 // xPriv returns the local stored xpriv
-app.xPriv = () => localStorage.getItem('satchel.xpriv')
+app.xPriv = () => localStorage.getItem(SatchelKeyXPriv)
 
 // xPub returns the local stored xpub
-app.xPub = () => localStorage.getItem('satchel.xpub')
+app.xPub = () => localStorage.getItem(SatchelKeyXPub)
 
 // privateKey returns the current private key
 app.privateKey = () => {
   // Get derived HD number
-  let num = localStorage.getItem('satchel.num') || 0
+  let num = localStorage.getItem(SatchelKeyNum) || 0
 
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
@@ -144,7 +154,7 @@ app.lookupPrivateKey = (chain, num) => {
 
 // utxos a wallet can have many utxos consume the top `max` utxos by value
 app.utxos = (max = 5) => {
-  let utxos = JSON.parse(localStorage.getItem('satchel.utxo') || '[]')
+  let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]')
 
   if (!utxos || !max) {
     return utxos
@@ -192,7 +202,7 @@ app.next = async () => {
     num = res.filter(a => { return a.chain === 0 })[0].num
   }
 
-  localStorage.setItem('satchel.num', num.toString())
+  localStorage.setItem(SatchelKeyNum, num.toString())
   return res
 }
 
@@ -246,13 +256,13 @@ app.login = async (xprvOrMnemonic) => {
     }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
     hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed(), 'livenet')
-    localStorage.setItem('satchel.mnemonic', xprvOrMnemonic)
+    localStorage.setItem(SatchelKeyMnemonic, xprvOrMnemonic)
   } else {
     hdPrivateKey = bsv.HDPrivateKey.fromString(xprvOrMnemonic)
   }
 
-  localStorage.setItem('satchel.xpriv', hdPrivateKey.toString())
-  localStorage.setItem('satchel.xpub', bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
+  localStorage.setItem(SatchelKeyXPriv, hdPrivateKey.toString())
+  localStorage.setItem(SatchelKeyXPub, bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
 
   await app.updateAll()
 
@@ -266,7 +276,7 @@ app.updateAll = async () => {
   let ts = app.timestamp()
   if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
     // Gets next key pair position so we can derive keys
-    localStorage.setItem('satchel.timestamp', new Date().getTime().toString())
+    localStorage.setItem(SatchelKeyTimestamp, new Date().getTime().toString())
     await app.next()
     await app.updateBalance()
     await app.updateUtxos()
@@ -441,8 +451,8 @@ app.updateBalance = async () => {
 
   // todo: check that we got the right values (confirmed, unconfirmed, etc)
 
-  localStorage.setItem('satchel.confirmed-balance', addrInfo.confirmed)
-  localStorage.setItem('satchel.unconfirmed-balance', addrInfo.unconfirmed)
+  localStorage.setItem(SatchelKeyConfirmedBalance, addrInfo.confirmed)
+  localStorage.setItem(SatchelKeyUnConfirmedBalance, addrInfo.unconfirmed)
   return app.balance()
 }
 
@@ -469,7 +479,7 @@ app.updateUtxos = async () => {
         : 0))
   }
 
-  localStorage.setItem('satchel.utxo', JSON.stringify(utxos))
+  localStorage.setItem(SatchelKeyUtxo, JSON.stringify(utxos))
   return utxos
 }
 
@@ -559,8 +569,8 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           let unconfirmedBalance = app.balance() - sats
 
           // Set in local storage
-          localStorage.setItem('satchel.confirmed-balance', '0')
-          localStorage.setItem('satchel.unconfirmed-balance', unconfirmedBalance.toString())
+          localStorage.setItem(SatchelKeyConfirmedBalance, '0')
+          localStorage.setItem(SatchelKeyUnConfirmedBalance, unconfirmedBalance.toString())
 
           // wait a second
           await sleep(1000)
@@ -589,7 +599,7 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           let unconfirmedBalance = app.unconfirmedBalance() + sats
 
           // Set in local storage
-          localStorage.setItem('satchel.unconfirmed-balance', unconfirmedBalance.toString())
+          localStorage.setItem(SatchelKeyUnConfirmedBalance, unconfirmedBalance.toString())
 
           // wait a second
           await sleep(1000)
