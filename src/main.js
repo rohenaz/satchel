@@ -291,6 +291,7 @@ app.downloadHref = () => {
 
 // Login with xPriv or Mnemonic
 app.login = async (xprvOrMnemonic) => {
+  if (!xprvOrMnemonic) { throw new Error('Private key required') }
 
   let hdPrivateKey
 
@@ -310,7 +311,7 @@ app.login = async (xprvOrMnemonic) => {
 
   await app.updateAll()
 
-  if (!app.socket) { app.bitsocketListener() }
+  if (!app.socket && app.bitsocketCallback) { app.bitsocketListener() }
 }
 
 // Updates if app.timestamp is older than app.updateDebounce
