@@ -10,10 +10,10 @@ const sb = require('satoshi-bitcoin')
 // Standard dust limit (minimum)
 const dustLimit = 546
 
-// Fee per kilobyte
+// Fee per kilobyte, used for calculating fees
 const feePerKb = 1000
 
-// Used for calculating estimated fees
+// Multiplier used for calculating estimated fees
 const feeEstimatedMultiplier = 1.4
 
 // BSV Explorer service provider
@@ -41,14 +41,14 @@ const app = {
 }
 
 // localStorage standard keys for satchel
-const SatchelKeyConfirmedBalance = "satchel.confirmed-balance"
-const SatchelKeyMnemonic = "satchel.mnemonic"
-const SatchelKeyNum = "satchel.num"
-const SatchelKeyTimestamp = "satchel.timestamp"
-const SatchelKeyUnConfirmedBalance = "satchel.unconfirmed-balance"
-const SatchelKeyUtxo = "satchel.utxo"
-const SatchelKeyXPriv = "satchel.xpriv"
-const SatchelKeyXPub = "satchel.xpub"
+const SatchelKeyConfirmedBalance = 'satchel.confirmed-balance'
+const SatchelKeyMnemonic = 'satchel.mnemonic'
+const SatchelKeyNum = 'satchel.num'
+const SatchelKeyTimestamp = 'satchel.timestamp'
+const SatchelKeyUnConfirmedBalance = 'satchel.unconfirmed-balance'
+const SatchelKeyUtxo = 'satchel.utxo'
+const SatchelKeyXPriv = 'satchel.xpriv'
+const SatchelKeyXPub = 'satchel.xpub'
 
 // Sleep - promise with a setTimeout()
 const sleep = (ms) => {
