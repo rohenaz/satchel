@@ -392,6 +392,7 @@ Returns a url to a qrcode for the current address.
 - https://chronos.bitdb.network/ (socket)
 - https://genesis.bitdb.network/ (tx history)
 - https://bitindex.network/ (xpub monitor)
+- https://qrserver.com/ (qr codes)
 
 #### Node Packages
 
