@@ -67,26 +67,25 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
     if (r.type === 't') {
       const tx = r.data[0]
       let sats = 0
-      
+
       for (const input of tx.in) {
         if (input.e.a === app.address().toString() ||
           input.e.a === app.changeAddress().toString()) {
-            // handle outgoing tx
-            sats += input.e.v
-            localStorage.setItem('satchel.confirmed-balance', 0)
-            localStorage.setItem('satchel.unconfirmed-balance', app.balance() - sats)
+          // handle outgoing tx
+          sats += input.e.v
+          localStorage.setItem('satchel.confirmed-balance', '0')
+          localStorage.setItem('satchel.unconfirmed-balance', app.balance() - sats)
 
-            // wait a second
-            await sleep(1000)
-            
-            // Get next address
-            await app.next()
-            // Update Balance
-            await app.updateBalance()
-            // Update UTXOs
-            await app.updateUtxos()
+          // wait a second
+          await sleep(1000)
+          // Get next address
+          await app.next()
+          // Update Balance
+          await app.updateBalance()
+          // Update UTXOs
+          await app.updateUtxos()
 
-            if (callback) { callback(tx) }
+          if (callback) { callback(tx) }
         }
       }
 
@@ -100,7 +99,7 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
 
           // wait a second
           await sleep(1000)
-          
+
           // Get next address
           await app.next()
           // Update Balance
@@ -120,7 +119,7 @@ app.estimateFee = (tx) => {
   if (options.pay && options.pay.fee) {
     tx.fee(options.pay.fee)
   } else {
-    var estSize=Math.ceil(tx._estimateSize()*1.4)
+    let estSize = Math.ceil(tx._estimateSize() * 1.4)
     tx.fee(estSize)
   }
 }
@@ -134,14 +133,13 @@ app.getHistory = async () => {
     headers: bitindexHeader()
   }
   let r = await fetch(url, header)
-  
+
   let res = await r.json()
-  
+
   return await app.queryPlanaria(app.txsQuery(res.map(record => { return record.txid })))
 }
 
 app.init = async (options = {}) => {
-
   // overwrite any variables in app passed from options
   for (const o of Object.entries(options)) {
     app[o[0]] = o[1]
@@ -184,7 +182,7 @@ app.unconfirmedBalance = () => parseInt(localStorage.getItem('satchel.unconfirme
 app.xPriv = () => localStorage.getItem('satchel.xpriv')
 app.xPub = () => localStorage.getItem('satchel.xpub')
 
-app.privateKey = () => {  
+app.privateKey = () => {
   // Get derived HD number
   let num = localStorage.getItem('satchel.num') || 0
   // If we don't have one, ask BitIndex
@@ -205,7 +203,6 @@ app.lookupPrivateKey = (chain, num) => {
   return hdPrivateKey.deriveChild('m/' + chain + '/' + num).privateKey
 }
 
-
 // a wallet can have many utxos
 // consume the top `max` utxos by value
 app.utxos = (max = 5) => {
@@ -218,11 +215,11 @@ app.utxos = (max = 5) => {
 }
 
 // returns an svg qrcode of current HD address
-app.qrCode = (size=300, format='svg') => {
+app.qrCode = (size = 300, format = 'svg') => {
   return 'https://api.qrserver.com/v1/create-qr-code/?' +
     '&qzone=1' +
-    '&data=' + satchel.address().toString() + 
-    '&size=' + size + 'x' + size + 
+    '&data=' + satchel.address().toString() +
+    '&size=' + size + 'x' + size +
     '&format=' + format
 }
 
@@ -244,13 +241,13 @@ app.next = async () => {
     headers: bitindexHeader()
   }
   let r = await fetch(url, header)
-  
+
   let res = await r.json()
   let num = 0
   if (res instanceof Array) {
-    num = res.filter(a => { return a.chain === 0})[0].num
+    num = res.filter(a => { return a.chain === 0 })[0].num
   }
-  
+
   localStorage.setItem('satchel.num', num)
   return res
 }
@@ -298,7 +295,7 @@ app.login = async (xprvOrMnemonic) => {
   if (xprvOrMnemonic.split(' ').length === 12) {
     if (!Mnemonic.isValid(xprvOrMnemonic)) {
       throw new Error('Invalid mnemonic')
-     }
+    }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
     hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed())
     localStorage.setItem('satchel.mnemonic', xprvOrMnemonic)
@@ -364,15 +361,15 @@ app.newDataTx = async (data, address, satoshis) => {
   tx.change(app.changeAddress())
 
   tx = app.cleanTxDust(tx)
-  
+
   let utxos = app.utxos()
   for (let i in utxos) {
     let pk = app.lookupPrivateKey(utxos[i].chain, utxos[i].num)
     tx.sign(pk)
   }
-  
+
   return tx
-} 
+}
 
 app.sendDataTx = async (data, address, satoshis) => {
   let tx = await app.newDataTx(data, address, satoshis)
@@ -380,7 +377,6 @@ app.sendDataTx = async (data, address, satoshis) => {
 }
 
 app.send = async (address, satoshis) => {
-
   if (!app.isLoggedIn()) {
     throw new Error('satchel: sending without being logged in')
   }
@@ -396,7 +392,7 @@ app.send = async (address, satoshis) => {
   tx.change(app.changeAddress())
 
   tx = app.cleanTxDust(tx)
-  
+
   let utxos = app.utxos()
   for (let i in utxos) {
     tx.sign(app.lookupPrivateKey(utxos[i].chain, utxos[i].num))
@@ -417,7 +413,6 @@ app.cleanTxDust = (tx) => {
 }
 
 app.addOpReturnData = (tx, data) => {
-
   const script = new bsv.Script()
   script.add(bsv.Opcode.OP_RETURN)
 
@@ -443,7 +438,6 @@ app.broadcastTx = async (tx, options = {
   safe: true, // check serialization
   testing: false // if true dont actually broadcast to network
 }) => {
-
   let txData
   if (options.safe) {
     txData = tx.serialize()
@@ -508,8 +502,8 @@ app.updateUtxos = async () => {
 
   if (utxos instanceof Array) {
     utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
-    : ((a.satoshis < b.satoshis) ? -1
-      : 0))
+      : ((a.satoshis < b.satoshis) ? -1
+        : 0))
   }
 
   localStorage.setItem('satchel.utxo', JSON.stringify(utxos))
@@ -535,7 +529,7 @@ app.queryPlanaria = async (q) => {
     return await r.json()
   } catch (e) {
     throw new Error(e)
-  }  
+  }
 }
 
 // Planarium + BitSocket queries for monitoring logged in address
@@ -544,8 +538,8 @@ app.monitorAddressQuery = (addressList) => ({
   q: {
     find: {
       '$or': [
-        { 'in.e.a': {'$in': addressList } },
-        { 'out.e.a': {'$in': addressList } }
+        { 'in.e.a': { '$in': addressList } },
+        { 'out.e.a': { '$in': addressList } }
       ]
     }
   }
@@ -555,7 +549,7 @@ app.txsQuery = (txList, limit, page = 1) => ({
   v: 3,
   q: {
     find: {
-      'tx.h': {'$in': txList}
+      'tx.h': { '$in': txList }
     },
     limit: limit,
     skip: ((page - 1) * limit)
