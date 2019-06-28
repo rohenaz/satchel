@@ -12,9 +12,7 @@
 [![license](https://img.shields.io/badge/license-Open%20BSV-brightgreen.svg?style=flat)](/LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat)](https://github.com/RichardLitt/standard-readme)
 
-
 Satchel is a minimal [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet for the web. It it is designed to speed up development of new Bitcoin apps without enforcing any UI opinions. It is a collection of convenience functions that work together to perform common wallet actions like importing private keys, making transactions, cleaning up UTXOs, and monitoring Bitcoin network activity. It uses bitsocket to monitor the logged in address tree, and triggers a callback to your application when related activity is seen on the network. It does not require you to run a bitcoin node or any other software. It relies on a few [external services](#services) to keep the size as low as possible.
-
 
 ## Table of Contents
 - [Installation](#installation)
@@ -27,15 +25,14 @@ Satchel is a minimal [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet
 - [Dependencies](#dependencies)
 - [License](#license)
 
-
 ## Installation
 
-#### Prerequisites
+### Prerequisites
 You need [npm](https://www.npmjs.com/) or [yarn](https://www.npmjs.com/package/yarn) installed.
 
 On a mac you can use [homebrew](https://brew.sh/) to install the above prerequisites 
 
-#### Install
+### Install
 Clone the repo, cd into the folder and `yarn` (`npm install`)
 ```bash
 $ git clone https://github.com/rohenaz/satchel.git
@@ -43,13 +40,13 @@ $ cd satchel
 $ yarn
 ```  
 
-#### Build From Source
+### Build From Source
 To generate a new satchel.min.js file, run the `yarn build` command (`npm run build`)
 ```bash
 $ yarn build
 ``` 
 
-#### Run the Example
+### Run the Example
 To launch the example via a [local-web-server](https://www.npmjs.com/package/local-web-server)
 
 Then open your browser to http://localhost:8000/example/index.html
