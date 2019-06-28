@@ -139,7 +139,7 @@ app.getHistory = async () => {
 
   return app.queryPlanaria(app.txsQuery(res.map(record => {
     return record.txid
-  })));
+  })))
 }
 
 app.init = async (options = {}) => {
@@ -156,7 +156,7 @@ app.init = async (options = {}) => {
       }
     }
   } catch (e) {
-    console.error('failed to initialize',e)
+    console.error('failed to initialize', e)
     return new Error('failed to initialize')
   }
 }
@@ -169,12 +169,12 @@ app.txLink = (txid) => `https://whatsonchain.com/tx/${txid}`
 // returns a bsv.Address
 app.changeAddress = () => {
   let changeKey = app.lookupPrivateKey(1, localStorage.getItem('satchel.num'))
-  return bsv.Address.fromPrivateKey(changeKey,'livenet')
+  return bsv.Address.fromPrivateKey(changeKey, 'livenet')
 }
 // returns a bsv.Address
 app.address = () => {
   let pubKey = app.publicKey()
-  return bsv.Address.fromPublicKey(pubKey,'livenet')
+  return bsv.Address.fromPublicKey(pubKey, 'livenet')
 }
 app.balance = () => { return app.confirmedBalance() + app.unconfirmedBalance() }
 app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
@@ -191,7 +191,7 @@ app.privateKey = () => {
   let num = localStorage.getItem('satchel.num') || 0
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
-    console.error("login first", num)
+    console.error('login first', num)
     throw new Error('login first')
   }
 
@@ -302,7 +302,7 @@ app.login = async (xprvOrMnemonic) => {
       throw new Error('Invalid mnemonic')
     }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
-    hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed(),'livenet')
+    hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed(), 'livenet')
     localStorage.setItem('satchel.mnemonic', xprvOrMnemonic)
   } else {
     hdPrivateKey = bsv.HDPrivateKey.fromString(xprvOrMnemonic)
@@ -355,7 +355,7 @@ app.newDataTx = async (data, address, satoshis) => {
   tx.from(app.utxos())
 
   if (address && satoshis > 0) {
-    if (!bsv.Address.isValid(address,'livenet','pubkey')) {
+    if (!bsv.Address.isValid(address, 'livenet', 'pubkey')) {
       throw new Error('satchel: invalid address')
     }
     tx.to(address, satoshis)
@@ -378,7 +378,7 @@ app.newDataTx = async (data, address, satoshis) => {
 
 app.sendDataTx = async (data, address, satoshis) => {
   let tx = await app.newDataTx(data, address, satoshis)
-  return app.broadcastTx(tx);
+  return app.broadcastTx(tx)
 }
 
 app.send = async (address, satoshis) => {
@@ -386,7 +386,7 @@ app.send = async (address, satoshis) => {
     throw new Error('satchel: sending without being logged in')
   }
 
-  if (!bsv.Address.isValid(address,'livenet','pubkey')) {
+  if (!bsv.Address.isValid(address, 'livenet', 'pubkey')) {
     throw new Error('satchel: invalid address')
   }
 
