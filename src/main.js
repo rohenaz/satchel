@@ -7,14 +7,14 @@ const Mnemonic = require('bsv/mnemonic')
 // Load the satoshi-bitcoin package
 const sb = require('satoshi-bitcoin')
 
-// Standard dust limit
+// Standard dust limit (minimum)
 const dustLimit = 546
 
 // Fee per kilobyte
 const feePerKb = 1000
 
 // Used for calculating estimated fees
-const feeEstimatedNumber = 1.4
+const feeEstimatedMultiplier = 1.4
 
 // BSV Explorer service provider
 const explorerProvider = 'https://whatsonchain.com'
@@ -618,7 +618,7 @@ app.estimateFee = (tx) => {
   if (options.pay && options.pay.fee) {
     tx.fee(options.pay.fee)
   } else {
-    let estSize = Math.ceil(tx._estimateSize() * feeEstimatedNumber)
+    let estSize = Math.ceil(tx._estimateSize() * feeEstimatedMultiplier)
     tx.fee(estSize)
   }
 }
