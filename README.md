@@ -16,6 +16,31 @@ Satchel is a minimal [Bitcoin SV](https://www.bitcoinsv.org/) headless HD wallet
 
 You need npm or yarn installed. 
 
+## Build Source
+
+##### Install
+
+```bash
+$ git clone https://github.com/rohenaz/satchel.git
+$ cd satchel
+$ yarn
+```
+
+##### Build
+
+```bash
+yarn build
+```
+
+##### Run Example
+
+```bash
+yarn serve
+```
+
+Then open your browser to http://localhost:8000/example/index.html
+
+
 ## Usage
 
 ````
@@ -409,28 +434,3 @@ Available at `satchel.bsv`.
 
 ##### `moneybutton/mnemonic`
 Available at `satchel.Mnemonic`
-
-
-## Build Source
-
-##### Install
-
-```bash
-git clone https://github.com/rohenaz/satchel.git
-cd satchel
-yarn
-```
-
-##### Build
-
-```bash
-yarn build
-```
-
-##### Run Example
-
-```bash
-yarn serve
-```
-
-Then open your browser to http://localhost:8000/example/index.html
