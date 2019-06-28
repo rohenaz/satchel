@@ -39,7 +39,8 @@
   "scripts": {
     "build": "webpack",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "serve": "yarn build && ws"
+    "serve": "yarn build && ws",
+    "lint": "cd src && standard --fix || true"
   },
   "standard": {
     "globals": [
