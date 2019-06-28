@@ -8,7 +8,8 @@
 
 [![JavaScript Style Guide](https://img.shields.io/badge/code_style-standard-brightgreen.svg)](https://standardjs.com)
  [![last commit](https://img.shields.io/github/last-commit/rohenaz/satchel.svg?style=flat)](https://github.com/rohenaz/satchel/commits/master)
-[![version](https://img.shields.io/github/release-pre/rohenaz/satchel.svg?style=flat)](https://github.com/rohenaz/satchel/releases)
+[![github version](https://img.shields.io/github/release-pre/rohenaz/satchel.svg?style=flat)](https://github.com/rohenaz/satchel/releases)
+[![npm version](https://img.shields.io/npm/v/bsv-satchel.svg?style=flat)](https://www.npmjs.com/package/bsv-satchel)
 [![license](https://img.shields.io/badge/license-Open%20BSV-brightgreen.svg?style=flat)](/LICENSE)
 [![standard-readme compliant](https://img.shields.io/badge/standard--readme-OK-green.svg?style=flat)](https://github.com/RichardLitt/standard-readme)
 
@@ -63,7 +64,7 @@ Below are all the options available to configure satchel.
 |--------|-------------|----------|------|--------|
 | bitIndexApiKey | Grab this from [BitIndex](https://bitindex.network) | :heavy_check_mark: | string | 1DGD3... |
 | planariaApiKey | Grab this from [BitDB](https://bitdb.network/v3/dashboard) | :heavy_check_mark: | string | 1XGGY... |
-| planariaUrl | Modify this if you are running a custom Planaria.  | |string |  https://genesis.bitdb.network/q/1Fna... |
+| planariaUrl | Modify this if you are running a custom [Planaria](https://planaria.network/).  | |string |  https://genesis.bitdb.network/q/1Fna... |
 | bitsocketUrl | Modify this if you are running custom bitsocket instance.  | |string |  https://chronos.bitdb.network/s/1P6o.. |
 | feePerKb | Satoshis per kilobyte for fee. |  | integer |  1000 |
 | rpc | What rpc service to use for sending transactions. | | string |  https://api.bitindex.network |
@@ -253,8 +254,7 @@ console.log('Now you can click the download link', nextAddressObj)
 ```
 
 #### `queryPlanaria(query: object)`
-Performs a query on the [bitdb](https://bitdb.network/) database which results in a JSON object.
-Find documentation about this at [https://bitdb.network/](https://bitdb.network/)
+Performs a query on the [bitdb](https://bitdb.network/) database which results in a JSON object. Read [more here about bitdb](https://bitdb.network/). 
 
 ```js
 const testQuery = {
@@ -365,7 +365,7 @@ satchel.init({
 **Note:** the satchel library will be available from `window.satchel`
 
 ### Usage: As a Package
-Use as an npm package
+Use as an [npm package](https://www.npmjs.com/package/bsv-satchel)
 ````bash
 $ yarn add bsv-satchel
 ````
