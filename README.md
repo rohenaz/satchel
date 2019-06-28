@@ -339,7 +339,7 @@ console.log(satchel.qrCode(300, 'svg'))
 ## Examples
 View the working [example](example/index.html) code, or [run the example locally](#run-the-example)
 
-#### Live Demos
+### Live Demos
 - [map.sv](https://map.sv/?affiliate=$satchmo) uses satchel for generating and broadcasting transactions
 - [DTV](https://dtv.cash/?affiliate=$satchmo) uses satchel for their visitors wallet solution
 
@@ -350,7 +350,7 @@ Always use the language's best practices!
 ## Usage
 There are [examples](#examples) above using satchel in the wild.
 
-#### In a Website
+### Usage: In a Website
 1) Add satchel to your page
 ```html
 <script src="/node_modules/bsv-satchel/dist/satchel.min.js">
@@ -367,7 +367,7 @@ satchel.init({
 
 **Note:** the satchel library will be available from `window.satchel`
 
-#### As a Package
+### Usage: As a Package
 Use as an npm package
 ````bash
 $ yarn add bsv-satchel
@@ -386,14 +386,14 @@ Feel free to dive in! [Open an issue](https://github.com/rohenaz/satchel/issues/
 ## Dependencies
 Satchel is powered by several 3rd-party services and public npm packages.
 
-#### 3rd-Party Services
+### 3rd-Party Services
 - [Chronos](https://chronos.bitdb.network/) (socket)
 - [Genesis](https://genesis.bitdb.network/) (tx history)
 - [Planaria](https://planaria.network/) (planaria)
 - [BitIndex](https://bitindex.network/) (xpub monitor)
 - [QR Server](https://qrserver.com/) (qr codes)
 
-#### Node Packages
+### Node Packages
 - [bsv](https://github.com/moneybutton/bsv) (bsv library)
 - [satoshi-bitcoin](https://github.com/dawsbot/satoshi-bitcoin) (conversions)
 - [qrcode-svg](https://github.com/papnkukn/qrcode-svg) (qr codes)
