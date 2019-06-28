@@ -1,6 +1,5 @@
 const bsv = require('bsv')
 const Mnemonic = require('bsv/mnemonic')
-const qrcode = require('qrcode-generator')
 const sb = require('satoshi-bitcoin')
 
 const dustLimit = 546
@@ -163,8 +162,8 @@ app.init = async (options = {}) => {
 app.sat2bsv = (sat) => sb.toBitcoin(sat)
 app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
-app.receiveAddressLinkUrlMapper = (address) => `https://whatsonchain.com/address/${address}`
-app.txLinkUrlMapper = (txid) => `https://whatsonchain.com/tx/${txid}`
+app.receiveAddressLink = (address) => `https://whatsonchain.com/address/${address}`
+app.txLink = (txid) => `https://whatsonchain.com/tx/${txid}`
 // returns a bsv.Address
 app.changeAddress = () => {
   let changeKey = app.lookupPrivateKey(1, localStorage.getItem('satchel.num'))
@@ -218,15 +217,9 @@ app.utxos = (max = 5) => {
   }).slice(0, max)
 }
 
-// create a qrCode object for a given address
-app.generateQrCode = (address) => {
-  const typeNumber = 0
-  const errorCorrectionLevel = 'H'
-  const qr = qrcode(typeNumber, errorCorrectionLevel)
-  qr.addData(address.toString())
-  qr.make()
-
-  return qr
+// returns an svg qrcode of current HD address
+app.qrCode = async () => {
+  return 'https://api.qrserver.com/v1/create-qr-code/?data=' + satchel.address().toString() + '&size=300x300&format=svg'
 }
 
 // generate a new mnemonic and logs in
@@ -486,6 +479,7 @@ app.updateBalance = async () => {
 
   localStorage.setItem('satchel.confirmed-balance', addrInfo.confirmed)
   localStorage.setItem('satchel.unconfirmed-balance', addrInfo.unconfirmed)
+  return app.balance()
 }
 
 app.updateUtxos = async () => {

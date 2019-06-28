@@ -5,5 +5,8 @@ module.exports = {
   output: {
     filename: 'satchel.min.js',
     path: path.resolve(__dirname, 'dist')
+  },
+  node: {
+    fs: 'empty'
   }
 }
