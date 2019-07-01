@@ -1,47 +1,66 @@
-<html>
-
+<!DOCTYPE html>
+<html lang="en">
   <head>
-    <title>BSV Satchel</title>
-    <style type="text/css">
-      body {
-        font-family: 'Tahoma';
-        font-size: 1rem;
-        text-align: center;
-      }
-      button {
-        padding: .5rem;
-        font-size: 1rem;
-      }
-    </style>
+    <meta charset="utf-8">
+    <link rel="icon" type="image/png" sizes="32x32" href="images/favicon-32x32.png">
+    <link rel="icon" type="image/png" sizes="16x16" href="images/favicon-16x16.png">
+    <meta name="apple-mobile-web-app-title" content="Satchel">
+    <meta name="application-name" content="Satchel">
+    <meta name="theme-color" content="#ffffff">
+    <link rel='shortcut icon' type='image/x-icon' href='favicon.ico' />
+    <title>Satchel (Basic Example)</title>
+
+    <!-- STYLES -->
+    <link rel="stylesheet" href="css/demo.css">
+
+    <!-- SCRIPTS -->
     <script src="../dist/satchel.min.js"></script>
     <script src="./js/wallet.js"></script>
   </head>
   <body>
     <h1>Stop. Satchel Time.</h1>
-    <div id="wallet"></div><br />
-    <button onclick="loginPrompt()">Restore Wallet</button>
-    <br />
-    <a id="downloadLink" style="display: none;" download="mnemonic-satchel.txt">Download Mnemonic</a>
-    <br />
-    <br />
-    <h1>Build OP_RETURN Tx</h1>
-    <label for="data">OP_RETURN Data:</label><br />
-    <textarea name="data" id="data" style="width:600px; height:300px"></textarea>
-    <br />
-    <small>This is the same format as the "data" portion of <a href="https://github.com/unwriter/datapay">Datapay format</a>.</small>
-    <br />
-    <br />
-    <button onclick="makeTx()">Make Tx</button>
-    <br />
-    <br />
-    <textarea  style="width:600px; height:300px" id="txHex"></textarea>
-    <br />
-    <br />
-    <button onclick="broadcast()">Broadcast</button>
-    <div id="successDiv"></div>
 
-    <h1>Tx History</h1>
+    <!-- WALLET / QR CODE -->
+    <div class="section">
+      <div id="wallet"></div>
+    </div>
 
-    <button onclick="getHistory()">Get History</button>
+    <!-- RESTORE / DOWNLOAD WALLET -->
+    <div class="section">
+      <button onclick="loginPrompt()">Restore Wallet</button>
+      <br>
+      <a id="downloadLink" download="mnemonic-satchel.txt">Download Mnemonic</a>
+    </div>
+
+    <h2>Build OP_RETURN Tx</h2>
+
+    <!-- OP RETURN DATA -->
+    <div class="section">
+      <label for="data">OP_RETURN Data:</label>
+      <br/>
+      <textarea class="dataTextarea" name="data" id="data"></textarea>
+      <br/>
+      <small>This is the same format as the "data" portion of <a href="https://github.com/unwriter/datapay" target="_blank">Datapay format</a>.</small>
+    </div>
+
+    <!-- MAKE A TX -->
+    <div class="section">
+      <button onclick="makeTx()" id="makeTx">Make Tx</button>
+      <br/>
+      <textarea class="dataTextarea" id="txHex"></textarea>
+    </div>
+
+    <!-- BROADCAST A TX -->
+    <div class="section">
+      <button onclick="broadcast()">Broadcast</button>
+      <div id="successDiv"></div>
+    </div>
+
+    <h2>Tx History</h2>
+
+    <!-- GET HISTORY -->
+    <div class="section">
+      <button onclick="getHistory()">Get History</button>
+    </div>
   </body>
 </html>

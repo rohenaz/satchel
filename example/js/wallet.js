@@ -1,14 +1,17 @@
+// Wait for page to load, then initialize satchel
 document.addEventListener('DOMContentLoaded', async () => {
   document.querySelector('textarea').value = 'loading...'
   await initSatchel()
 })
 
+// activeTx flag
 let activeTx
 
+// defaultOpReturnData default op return data
 const defaultOpReturnData = ()  => {
-  let chain = 0
-  let num = 2
-  let pk = satchel.lookupPrivateKey(chain, num)
+  // let chain = 0
+  // let num = 2
+  // let pk = satchel.lookupPrivateKey(chain, num)
   // todo add metanet protocol
   // "meta", // metanet protocol prefix
   // "` + satchel.createMetaNode().address().toString() + `", // public key
@@ -34,22 +37,23 @@ const defaultOpReturnData = ()  => {
 `
 }
 
+// socketCallback create the callback
 const socketCallback = (data) => {
   // Here you can react to wallet messages in your UI
   console.log('socket callback', data)
   walletLoaded()
 }
 
+// initSatchel start satchel
 const initSatchel = async () => {
   /* INIT SATCHEL */
 
   // ***** REPLACE WITH YOUR PLANARIA API KEY ***** //
-  // ***** GET ONE HERE: https://www.bitindex.network/#get-api-key //
   let planariaApiKey = '1bCypws1toQHRkqQev22u7sWGrG9S1Vtf'
 
   // ***** REPLACE WITH YOUR BITINDEX API KEY ***** //
   // ***** GET ONE HERE: https://www.bitindex.network/#get-api-key //
-  let bitIndexApiKey = 'AFiMUsLXkrrAVSjX2kVT2RaDqyPwvqXE4LdhYvS4vheoejohAEV5aLp1XrXmDfK9qp'
+  let bitIndexApiKey = '8RJ3oQyUNZW6PtVXZp64J1GsV5cRjaJveUB9JCFkQYzadKYfHGUeAJhXqhfSCXyx4q'
 
   await satchel.init({
     'planariaApiKey': planariaApiKey,
@@ -60,9 +64,12 @@ const initSatchel = async () => {
   await walletLoaded()
 }
 
+// loginPrompt prompts for login
 const loginPrompt = async () => {
-  let login = prompt('Enter a 12 word mnemonic, or extended private key.')
-  if (!satchel.login) { return }
+  let login = prompt('Enter a 12 word mnemonic')
+  if (!satchel.login) {
+    return
+  }
   await satchel.login(login)
   if (satchel.isLoggedIn()) {
     console.log('logged in')
@@ -85,21 +92,23 @@ const makeTx = async () => {
   activeTx = tx
 }
 
+// broadcast a bitcoin tx
 const broadcast = async () => {
   try {
     let tx = await satchel.broadcastTx(activeTx)
     let div = document.getElementById('successDiv')
     div.innerHTML = 'Success! <a href="' + 
-      satchel.txLink(tx.txid) + '" target="blank">' + tx.txid + '</a>'
+      satchel.txLink(tx.txid) + '" target="_blank">' + tx.txid + '</a>'
   } catch (e) {
     console.error(e)
   }
 }
 
-
+// getHistory get the history for the wallet
 const getHistory = async () => {
   let history = await satchel.getHistory()
   let historyDiv = document.createElement('div')
+
   // combine confirmed and unconfirmed items
   let items = history.u.concat(history.c)
   for (let i in items) {
@@ -115,6 +124,7 @@ const getHistory = async () => {
   document.body.appendChild(historyDiv)
 }
 
+// walletLoaded creates new wallet if it doesn't exist, and loads address/balance etc
 const walletLoaded = async () => {
 
   // If you're not logged in, create a new HD private key
@@ -122,6 +132,7 @@ const walletLoaded = async () => {
     await satchel.new() 
   }
 
+  // Set the mnemonic anchor if found
   if (satchel.mnemonic()) {
     satchel.setMnemonicAnchor(document.getElementById('downloadLink'))
   }

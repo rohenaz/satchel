@@ -1,0 +1,27 @@
+body {
+    font-family: 'Tahoma', serif;
+    font-size: 1rem;
+    text-align: center;
+}
+
+button {
+    padding: .5rem;
+    font-size: 1rem;
+}
+
+.dataTextarea {
+    width: 600px;
+    height: 300px;
+}
+
+#downloadLink {
+    display: none;
+}
+
+.section {
+    margin-bottom: 25px;
+}
+
+#makeTx {
+    margin-bottom: 25px;
+}
