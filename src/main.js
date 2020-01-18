@@ -178,15 +178,15 @@ app.balance = () => { return app.confirmedBalance() + app.unconfirmedBalance() }
 app.confirmedBalance = () => parseInt(localStorage.getItem('satchel.confirmed-balance') || 0)
 app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
 app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
-app.mnemonic = () => localStorage.getItem('satchel.mnemonic')
+app.mnemonic = (metanet = false) => metanet ? localStorage.getItem('satchel.meta.mnemonic') : localStorage.getItem('satchel.mnemonic')
 app.timestamp = () => localStorage.getItem('satchel.timestamp')
 app.unconfirmedBalance = () => parseInt(localStorage.getItem('satchel.unconfirmed-balance') || 0)
-app.xPriv = () => localStorage.getItem('satchel.xpriv')
-app.xPub = () => localStorage.getItem('satchel.xpub')
+app.xPriv = (metanet = false) => metanet ? localStorage.getItem('satchel.meta.xpriv') : localStorage.getItem('satchel.xpriv')
+app.xPub = (metanet = false) => metanet ? localStorage.getItem('satchel.meta.xpub') : localStorage.getItem('satchel.xpub')
 
-app.privateKey = () => {  
+app.privateKey = (metanet = false) => {  
   // Get derived HD number
-  let num = localStorage.getItem('satchel.num') || 0
+  let num = metanet ? localStorage.getItem('satchel.meta.num') : localStorage.getItem('satchel.num') || 0
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
     throw new Error('log in first', num)
@@ -204,7 +204,6 @@ app.lookupPrivateKey = (chain, num) => {
   }
   return hdPrivateKey.deriveChild('m/' + chain + '/' + num).privateKey
 }
-
 
 // a wallet can have many utxos
 // consume the top `max` utxos by value
@@ -229,15 +228,15 @@ app.qrCode = (size=300, format='svg') => {
 // generate a new mnemonic and logs in
 app.new = async () => {
   let mnemonic = Mnemonic.fromRandom()
-  await app.login(mnemonic.toString())
+  await app.login(mnemonic.toString(), true)
   return mnemonic
 }
 
 // Call next address BitIndex endpoint and set num
 // Returns the full API response
-app.next = async () => {
-  if (!app.xPub()) { return [] }
-  let url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/addrs/next'
+app.next = async (metanet = false) => {
+  if (!app.xPub(metanet)) { return [] }
+  let url = app.rpc + '/api/v3/main/xpub/' + app.xPub(metanet) + '/addrs/next'
 
   // Bitindex api key
   const header = {
@@ -251,13 +250,13 @@ app.next = async () => {
     num = res.filter(a => { return a.chain === 0})[0].num
   }
   
-  localStorage.setItem('satchel.num', num)
+  localStorage.setItem((metanet ? 'satchel.meta.num' : 'satchel.num'), num)
   return res
 }
 
 // Pass an element or querySelector to apply mnemonic download href
 // and unhide element
-app.setMnemonicAnchor = (a) => {
+app.setMnemonicAnchor = (a, metanet = false) => {
   let el
   if (typeof a === 'string') {
     el = document.querySelector(a)
@@ -290,7 +289,7 @@ app.downloadHref = () => {
 }
 
 // Login with xPriv or Mnemonic
-app.login = async (xprvOrMnemonic) => {
+app.login = async (xprvOrMnemonic, metanet=false) => {
   if (!xprvOrMnemonic) { throw new Error('Private key required') }
 
   let hdPrivateKey
@@ -301,28 +300,28 @@ app.login = async (xprvOrMnemonic) => {
      }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
     hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed())
-    localStorage.setItem('satchel.mnemonic', xprvOrMnemonic)
+    localStorage.setItem((metanet ? 'satche;.meta.mnemonic' : 'satchel.mnemonic'), xprvOrMnemonic)
   } else {
     hdPrivateKey = bsv.HDPrivateKey.fromString(xprvOrMnemonic)
   }
 
-  localStorage.setItem('satchel.xpriv', hdPrivateKey.toString())
-  localStorage.setItem('satchel.xpub', bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
+  localStorage.setItem((metanet ? 'satche;.meta.xpub' : 'satchel.xpriv'), hdPrivateKey.toString())
+  localStorage.setItem((metanet ? 'satche;.meta.xpriv' : 'satchel.xpub'), bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
 
-  await app.updateAll()
+  await app.updateAll(true)
 
   if (!app.socket && app.bitsocketCallback) { app.bitsocketListener() }
 }
 
 // Updates if app.timestamp is older than app.updateDebounce
-app.updateAll = async () => {
+app.updateAll = async (metanet = false) => {
   let ts = app.timestamp()
   if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
     // Gets next keypair position so we can derive keys
-    localStorage.setItem('satchel.timestamp', new Date().getTime())
-    await app.next()
-    await app.updateBalance()
-    await app.updateUtxos()
+    localStorage.setItem((metanet ? 'satchel.meta.timestamp' : 'satchel.timestamp'), new Date().getTime())
+    await app.next(true)
+    await app.updateBalance(true)
+    await app.updateUtxos(true)
   }
 }
 
@@ -344,6 +343,8 @@ app.logout = () => {
   }
 }
 
+// create a new Transaction with the given op_return data, 
+// with an output to the given address for the given amount
 app.newDataTx = async (data, address, satoshis) => {
   if (!app.isLoggedIn()) {
     throw new Error('satchel: sending without being logged in')
@@ -374,6 +375,7 @@ app.newDataTx = async (data, address, satoshis) => {
   return tx
 } 
 
+// Same as newDataTx but also broadcasts the tra saction immediately
 app.sendDataTx = async (data, address, satoshis) => {
   let tx = await app.newDataTx(data, address, satoshis)
   return await app.broadcastTx(tx)
