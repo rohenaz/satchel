@@ -154,7 +154,15 @@ app.lookupPrivateKey = (chain, num) => {
 
 // utxos a wallet can have many utxos consume the top `max` utxos by value
 app.utxos = (max = 5) => {
-  let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]')
+  let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]').map(utxo => {
+    
+    // remove when allaboard is bsv lib compliant :(
+    if (!utxo.amount) {
+      utxo.amount = utxo.value
+    }
+
+    return utxo
+  })
 
   if (!utxos || !max) {
     return utxos
