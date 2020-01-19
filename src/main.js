@@ -30,7 +30,7 @@ const app = {
   mnemonic: Mnemonic,
   planariaApiKey: '',
   planariaUrl: 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/',
-  rpc: 'https://api.bitindex.network',
+  rpcXpub: 'https://api.allaboardbitcoin.com',
   updateDebounce: 10000,
 
   // this must be set to enable bitsocket
@@ -185,23 +185,36 @@ app.new = async () => {
 // next calls next address BitIndex endpoint and set num and returns the full API response
 app.next = async () => {
   if (!app.xPub()) { return [] }
-  let url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/addrs/next'
+  let url = app.rpcXpub + '/xpub/status'
 
-  // Bitindex api key
-  const header = {
-    headers: bitindexHeader()
+  const data = {
+    xpub: app.xPub() 
   }
 
-  let r = await fetch(url, header)
+  // let r = await fetch(url, data, header)
+
+  let r = await fetch(url, {
+    credentials: 'same-origin', // 'include', default: 'omit'
+    method: 'POST',             // 'GET', 'PUT', 'DELETE', etc.
+    body: new URLSearchParams(data), // Use correct payload (matching 'Content-Type')
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+  })
+
   let res = await r.json()
 
   // todo: check the response and make sure its valid
 
   let num = 0
-  if (res instanceof Array) {
-    num = res.filter(a => { return a.chain === 0 })[0].num
+
+  if (res.utxos instanceof Array && res.length) {
+    num = res.utxos.sort((a, b) => {
+      return a.num > b.num ? 1 : -1
+    }).filter(a => { return a.chain === 0 })[0].num
   }
 
+  localStorage.setItem(SatchelKeyConfirmedBalance, res.confirmed && res.confirmed.length ? res.confirmed : 0)
+  localStorage.setItem(SatchelKeyUnConfirmedBalance, res.unconfirmed && res.unconfirmed.length ? res.unconfirmed : 0)
+  localStorage.setItem(SatchelKeyUtxo, JSON.stringify(res.utxos))
   localStorage.setItem(SatchelKeyNum, num.toString())
   return res
 }
@@ -278,8 +291,8 @@ app.updateAll = async () => {
     // Gets next key pair position so we can derive keys
     localStorage.setItem(SatchelKeyTimestamp, new Date().getTime().toString())
     await app.next()
-    await app.updateBalance()
-    await app.updateUtxos()
+    // await app.updateBalance()
+    // await app.updateUtxos()
   }
 }
 
@@ -417,7 +430,7 @@ app.broadcastTx = async (tx, options = {
   if (options.testing) {
     return tx
   } else {
-    const url = app.rpc + '/api/v3/main/tx/send'
+    const url = app.rpcXpub + '/api/v3/main/tx/send'
     const data = {
       method: 'POST',
       body: JSON.stringify({
@@ -437,51 +450,49 @@ app.broadcastTx = async (tx, options = {
 
 // updateBalance update the balance from rpc provider
 app.updateBalance = async () => {
-  const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/status'
-  const header = {
-    headers: bitindexHeader()
-  }
-  let addrInfo
-  try {
-    let res = await fetch(url, header)
-    addrInfo = await res.json()
-  } catch (e) {
-    throw new Error(e)
-  }
+  // const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/status'
+  // const header = {
+  //   headers: bitindexHeader()
+  // }
+  // let addrInfo
+  // try {
+  //   let res = await fetch(url, header)
+  //   addrInfo = await res.json()
+  // } catch (e) {
+  //   throw new Error(e)
+  // }
 
   // todo: check that we got the right values (confirmed, unconfirmed, etc)
 
-  localStorage.setItem(SatchelKeyConfirmedBalance, addrInfo.confirmed)
-  localStorage.setItem(SatchelKeyUnConfirmedBalance, addrInfo.unconfirmed)
+
   return app.balance()
 }
 
 // updateUtxos update utxos from rpc provider
-app.updateUtxos = async () => {
-  const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/utxo'
-  const header = {
-    headers: bitindexHeader()
-  }
-  let utxos
-  try {
-    let res = await fetch(url, header)
-    utxos = await res.json()
-    if (!utxos) {
-      utxos = []
-    }
-  } catch (e) {
-    throw new Error(e)
-  }
+// app.updateUtxos = async () => {
+//   // const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/utxo'
+//   // const header = {
+//   //   headers: bitindexHeader()
+//   // }
+//   // let utxos
+//   // try {
+//   //   let res = await fetch(url, header)
+//   //   utxos = await res.json()
+//   //   if (!utxos) {
+//   //     utxos = []
+//   //   }
+//   // } catch (e) {
+//   //   throw new Error(e)
+//   // }
 
-  if (utxos instanceof Array) {
-    utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
-      : ((a.satoshis < b.satoshis) ? -1
-        : 0))
-  }
-
-  localStorage.setItem(SatchelKeyUtxo, JSON.stringify(utxos))
-  return utxos
-}
+//   // if (utxos instanceof Array) {
+//   //   utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
+//   //     : ((a.satoshis < b.satoshis) ? -1
+//   //       : 0))
+//   // }
+  
+//   return app.getU
+// }
 
 // queryPlanaria queries planaria
 app.queryPlanaria = async (q) => {
@@ -579,10 +590,10 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           await app.next()
 
           // Update Balance
-          await app.updateBalance()
+          // await app.updateBalance()
 
           // Update UTXOs
-          await app.updateUtxos()
+          // await app.updateUtxos()
 
           if (callback) {
             callback(tx)
@@ -608,10 +619,10 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           await app.next()
 
           // Update Balance
-          await app.updateBalance()
+          // await app.updateBalance()
 
           // Update UTXOs
-          await app.updateUtxos()
+          // await app.updateUtxos()
 
           if (callback) {
             callback(tx)
@@ -634,6 +645,7 @@ app.estimateFee = (tx) => {
 }
 
 // getHistory will return the history for the current wallet
+// Todo - allaboard xpub history
 app.getHistory = async () => {
   if (!app.xPub()) {
     return []
