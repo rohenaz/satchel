@@ -438,7 +438,7 @@ app.broadcastTx = async (tx, options = {
   if (options.testing) {
     return tx
   } else {
-    const url = app.rpcXpub + '/api/v3/main/tx/send'
+    const url = app.rpc + '/api/v3/main/tx/send'
     const data = {
       method: 'POST',
       body: JSON.stringify({
