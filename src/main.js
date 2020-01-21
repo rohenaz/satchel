@@ -22,6 +22,9 @@ const explorerProvider = 'https://whatsonchain.com'
 // QR Code service provider
 const qrCodeProvider = 'https://api.qrserver.com/v1/'
 
+const defaults = {
+  fee: 500
+}
 // Initialize the application
 const app = {
   bitIndexApiKey: '',
@@ -30,6 +33,7 @@ const app = {
   mnemonic: Mnemonic,
   planariaApiKey: '',
   planariaUrl: 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/',
+  rpc: 'https://api.bitindex.network',
   rpcXpub: 'https://api.allaboardbitcoin.com',
   updateDebounce: 10000,
 
@@ -154,13 +158,12 @@ app.lookupPrivateKey = (chain, num) => {
 
 // utxos a wallet can have many utxos consume the top `max` utxos by value
 app.utxos = (max = 5) => {
-  let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]').map(utxo => {
-    
+  let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]')
+  utxos = utxos.map(utxo => {
     // remove when allaboard is bsv lib compliant :(
-    if (!utxo.amount) {
-      utxo.amount = utxo.value
+    if (!utxo.satoshis) {
+      utxo.satoshis = utxo.value
     }
-
     return utxo
   })
 
@@ -332,8 +335,8 @@ app.newDataTx = async (data, address, satoshis) => {
   }
 
   let tx = new satchel.bsv.Transaction() // todo: missing parameter?
-  tx.from(app.utxos())
 
+  tx.from(app.utxos())
   if (address && satoshis > 0) {
     if (!bsv.Address.isValid(address, 'livenet', 'pubkey')) {
       throw new Error('satchel: invalid address')
@@ -352,7 +355,6 @@ app.newDataTx = async (data, address, satoshis) => {
     let pk = app.lookupPrivateKey(utxos[i].chain, utxos[i].num)
     tx.sign(pk) // todo: missing second parameter
   }
-
   return tx
 }
 

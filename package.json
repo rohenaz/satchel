@@ -16,7 +16,7 @@
   "bugs": "https://github.com/rohenaz/satchel/issues",
   "homepage": "https://github.com/rohenaz/satchel",
   "dependencies": {
-    "bsv": "^0.27.1",
+    "bsv": "^1.2.0",
     "satoshi-bitcoin": "^1.0.4",
     "local-web-server": "^3.0.3"
   },
