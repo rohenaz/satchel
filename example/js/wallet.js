@@ -18,13 +18,13 @@ const defaultOpReturnData = ()  => {
   // "NULL",
   // "|",
   return `
-[
+[[
 "19HxigV4QyBv3tHpQVcUEQyq1pzZVdoAut",
 "# hello world",
 "text/markdown",
 "UTF-8",
-"demo.md",
-"|",
+"demo.md"
+],[
 "1PuQa7K62MiKCtssSLKy1kh56WWU7MtUR5",
 "SET",
 "app",
@@ -33,7 +33,7 @@ const defaultOpReturnData = ()  => {
 "comment",
 "user",
 "satchmo"
-]
+]]
 `
 }
 
@@ -85,6 +85,7 @@ const makeTx = async () => {
   // create a new tx from your satchel with the data array as OP_RETURN data
   let tx = await satchel.newDataTx(JSON.parse(val))
 
+  
   // Update the UI
   document.getElementById('txHex').value = tx.toString()
 
@@ -94,13 +95,14 @@ const makeTx = async () => {
 
 // broadcast a bitcoin tx
 const broadcast = async () => {
+  let div = document.getElementById('successDiv')
   try {
     let tx = await satchel.broadcastTx(activeTx)
-    let div = document.getElementById('successDiv')
     div.innerHTML = 'Success! <a href="' + 
       satchel.txLink(tx.txid) + '" target="_blank">' + tx.txid + '</a>'
   } catch (e) {
     console.error(e)
+    div.innerHTML = e
   }
 }
 
