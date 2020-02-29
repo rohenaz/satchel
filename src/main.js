@@ -4,6 +4,8 @@ const bsv = require('bsv')
 // Load the mnemonic package
 const Mnemonic = require('bsv/mnemonic')
 
+const Message = require('bsv/message')
+
 // Load the satoshi-bitcoin package
 const sb = require('satoshi-bitcoin')
 
@@ -27,6 +29,7 @@ const defaults = {
 }
 // Initialize the application
 const app = {
+  Message: Message,
   bitIndexApiKey: '',
   bsv: bsv,
   feePerKb: feePerKb,
@@ -37,7 +40,7 @@ const app = {
   rpcXpub: 'https://api.allaboardbitcoin.com',
   updateDebounce: 10000,
 
-  // this must be set to enable bitsocket
+  // This must be set to enable bitsocket
   bitsocketCallback: null,
   bitsocketUrl: 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/',
   debug: false,
@@ -349,19 +352,17 @@ app.newDataTx = async (data, address, satoshis) => {
     tx.to(address, satoshis)
   }
 
-  let len = data.length
-  for (let x = 0; x < len; x ++) {
-    tx = app.addOpReturnData(tx, data[x])
-  }
-
+  tx = app.addOpReturnData(tx, data)
   tx.feePerKb(app.feePerKb)
   tx.change(app.changeAddress())
 
   tx = app.cleanTxDust(tx)
 
-  for (let i in utxos) {
-    console.log('lookup', utxos[i].chain, utxos[i].num)
-    let pk = app.lookupPrivateKey(utxos[i].chain, utxos[i].num)
+  for (const utxo of utxos) {
+    if (app.debug) {
+      console.log('lookup', utxo.chain, utxo.num)
+    }
+    let pk = app.lookupPrivateKey(utxo.chain, utxo.num)
     tx.sign(pk) // todo: missing second parameter
   }
   return tx
@@ -417,13 +418,13 @@ app.addOpReturnData = (tx, data) => {
   script.add(bsv.Opcode.OP_FALSE)
   script.add(bsv.Opcode.OP_RETURN)
 
-  for (const m in data) {
+  for (const m of data) {
     // Detect hex prefix
-    if (typeof data[m] === 'string' && data[m].startsWith('0x')) {
-      script.add(Buffer.from(data[m].substring(2), 'hex'))
+    if (typeof m === 'string' && m.startsWith('0x')) {
+      script.add(Buffer.from(m.substring(2), 'hex'))
     } else {
       // Otherwise, assume string
-      script.add(Buffer.from(data[m]))
+      script.add(Buffer.from(m))
     }
   }
 
@@ -464,7 +465,6 @@ app.broadcastTx = async (tx, options = {
       if (res.status !== 200) {
         throw new Error('Failed to broadcast')
       }
-      console.log('res', res)
       return await res.json()
     } catch (e) {
       throw new Error(e)
