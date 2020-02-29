@@ -4,6 +4,8 @@ const bsv = require('bsv')
 // Load the mnemonic package
 const Mnemonic = require('bsv/mnemonic')
 
+const Message = require('bsv/message')
+
 // Load the satoshi-bitcoin package
 const sb = require('satoshi-bitcoin')
 
@@ -22,8 +24,12 @@ const explorerProvider = 'https://whatsonchain.com'
 // QR Code service provider
 const qrCodeProvider = 'https://api.qrserver.com/v1/'
 
+const defaults = {
+  fee: 500
+}
 // Initialize the application
 const app = {
+  Message: Message,
   bitIndexApiKey: '',
   bsv: bsv,
   feePerKb: feePerKb,
@@ -31,9 +37,10 @@ const app = {
   planariaApiKey: '',
   planariaUrl: 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/',
   rpc: 'https://api.bitindex.network',
+  rpcXpub: 'https://api.allaboardbitcoin.com',
   updateDebounce: 10000,
 
-  // this must be set to enable bitsocket
+  // This must be set to enable bitsocket
   bitsocketCallback: null,
   bitsocketUrl: 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/',
   debug: false,
@@ -76,6 +83,10 @@ app.sat2bsv = (sat) => sb.toBitcoin(sat)
 // bsv2sat converts bitcoin to satoshis
 app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
 
+app.num = () => {
+  return localStorage.getItem(SatchelKeyNum) || 0
+}
+
 // receiveAddressLink sets the link to view the address via explorer
 app.receiveAddressLink = (address) => explorerProvider + `/address/${address}`
 
@@ -84,7 +95,7 @@ app.txLink = (txid) => explorerProvider + `/tx/${txid}`
 
 // changeAddress returns a bsv.Address
 app.changeAddress = () => {
-  let changeKey = app.lookupPrivateKey(1, localStorage.getItem(SatchelKeyNum))
+  let changeKey = app.lookupPrivateKey(1, app.num())
   return bsv.Address.fromPrivateKey(changeKey, 'livenet')
 }
 
@@ -126,7 +137,7 @@ app.xPub = () => localStorage.getItem(SatchelKeyXPub)
 // privateKey returns the current private key
 app.privateKey = () => {
   // Get derived HD number
-  let num = localStorage.getItem(SatchelKeyNum) || 0
+  let num = app.num()
 
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
@@ -155,6 +166,13 @@ app.lookupPrivateKey = (chain, num) => {
 // utxos a wallet can have many utxos consume the top `max` utxos by value
 app.utxos = (max = 5) => {
   let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]')
+  utxos = utxos.map(utxo => {
+    // remove when allaboard is bsv lib compliant :(
+    if (!utxo.satoshis) {
+      utxo.satoshis = utxo.value
+    }
+    return utxo
+  })
 
   if (!utxos || !max) {
     return utxos
@@ -185,24 +203,36 @@ app.new = async () => {
 // next calls next address BitIndex endpoint and set num and returns the full API response
 app.next = async () => {
   if (!app.xPub()) { return [] }
-  let url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/addrs/next'
+  let url = app.rpcXpub + '/xpub/status'
 
-  // Bitindex api key
-  const header = {
-    headers: bitindexHeader()
+  const data = {
+    xpub: app.xPub() 
   }
 
-  let r = await fetch(url, header)
+  // let r = await fetch(url, data, header)
+
+  let r = await fetch(url, {
+    credentials: 'same-origin', // 'include', default: 'omit'
+    method: 'POST',             // 'GET', 'PUT', 'DELETE', etc.
+    body: new URLSearchParams(data), // Use correct payload (matching 'Content-Type')
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+  })
+
   let res = await r.json()
 
   // todo: check the response and make sure its valid
 
-  let num = 0
-  if (res instanceof Array) {
-    num = res.filter(a => { return a.chain === 0 })[0].num
-  }
 
-  localStorage.setItem(SatchelKeyNum, num.toString())
+  // if (res.utxos instanceof Array && res.length) {
+  //   num = res.utxos.sort((a, b) => {
+  //     return a.num > b.num ? 1 : -1
+  //   }).filter(a => { return a.chain === 0 })[0].num
+  // }
+
+  localStorage.setItem(SatchelKeyConfirmedBalance, res.confirmed && res.confirmed.length ? res.confirmed : 0)
+  localStorage.setItem(SatchelKeyUnConfirmedBalance, res.unconfirmed && res.unconfirmed.length ? res.unconfirmed : 0)
+  localStorage.setItem(SatchelKeyUtxo, JSON.stringify(res.utxos))
+  localStorage.setItem(SatchelKeyNum, res.next_num.toString())
   return res
 }
 
@@ -278,8 +308,8 @@ app.updateAll = async () => {
     // Gets next key pair position so we can derive keys
     localStorage.setItem(SatchelKeyTimestamp, new Date().getTime().toString())
     await app.next()
-    await app.updateBalance()
-    await app.updateUtxos()
+    // await app.updateBalance()
+    // await app.updateUtxos()
   }
 }
 
@@ -311,8 +341,10 @@ app.newDataTx = async (data, address, satoshis) => {
   }
 
   let tx = new satchel.bsv.Transaction() // todo: missing parameter?
-  tx.from(app.utxos())
 
+  let utxos = app.utxos()
+
+  tx.from(utxos)
   if (address && satoshis > 0) {
     if (!bsv.Address.isValid(address, 'livenet', 'pubkey')) {
       throw new Error('satchel: invalid address')
@@ -326,12 +358,13 @@ app.newDataTx = async (data, address, satoshis) => {
 
   tx = app.cleanTxDust(tx)
 
-  let utxos = app.utxos()
-  for (let i in utxos) {
-    let pk = app.lookupPrivateKey(utxos[i].chain, utxos[i].num)
+  for (const utxo of utxos) {
+    if (app.debug) {
+      console.log('lookup', utxo.chain, utxo.num)
+    }
+    let pk = app.lookupPrivateKey(utxo.chain, utxo.num)
     tx.sign(pk) // todo: missing second parameter
   }
-
   return tx
 }
 
@@ -352,14 +385,14 @@ app.send = async (address, satoshis) => {
   }
 
   let tx = new bsv.Transaction() // todo: missing parameter?
-  tx.from(app.utxos())
+  let utxos = app.utxos()
+  tx.from(utxos)
   tx.to(address, satoshis)
   tx.feePerKb(app.feePerKb)
   tx.change(app.changeAddress())
 
   tx = app.cleanTxDust(tx)
 
-  let utxos = app.utxos()
   for (let i in utxos) {
     tx.sign(app.lookupPrivateKey(utxos[i].chain, utxos[i].num)) // todo: missing second parameter
   }
@@ -382,15 +415,16 @@ app.cleanTxDust = (tx) => {
 // addOpReturnData adds op_return data to txt
 app.addOpReturnData = (tx, data) => {
   const script = new bsv.Script()
+  script.add(bsv.Opcode.OP_FALSE)
   script.add(bsv.Opcode.OP_RETURN)
 
-  for (const m in data) {
+  for (const m of data) {
     // Detect hex prefix
-    if (data[m].startsWith('0x')) {
-      script.add(Buffer.from(data[m].substring(2), 'hex'))
+    if (typeof m === 'string' && m.startsWith('0x')) {
+      script.add(Buffer.from(m.substring(2), 'hex'))
     } else {
       // Otherwise, assume string
-      script.add(Buffer.from(data[m]))
+      script.add(Buffer.from(m))
     }
   }
 
@@ -428,6 +462,9 @@ app.broadcastTx = async (tx, options = {
 
     try {
       let res = await fetch(url, data)
+      if (res.status !== 200) {
+        throw new Error('Failed to broadcast')
+      }
       return await res.json()
     } catch (e) {
       throw new Error(e)
@@ -437,51 +474,49 @@ app.broadcastTx = async (tx, options = {
 
 // updateBalance update the balance from rpc provider
 app.updateBalance = async () => {
-  const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/status'
-  const header = {
-    headers: bitindexHeader()
-  }
-  let addrInfo
-  try {
-    let res = await fetch(url, header)
-    addrInfo = await res.json()
-  } catch (e) {
-    throw new Error(e)
-  }
+  // const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/status'
+  // const header = {
+  //   headers: bitindexHeader()
+  // }
+  // let addrInfo
+  // try {
+  //   let res = await fetch(url, header)
+  //   addrInfo = await res.json()
+  // } catch (e) {
+  //   throw new Error(e)
+  // }
 
   // todo: check that we got the right values (confirmed, unconfirmed, etc)
 
-  localStorage.setItem(SatchelKeyConfirmedBalance, addrInfo.confirmed)
-  localStorage.setItem(SatchelKeyUnConfirmedBalance, addrInfo.unconfirmed)
+
   return app.balance()
 }
 
 // updateUtxos update utxos from rpc provider
-app.updateUtxos = async () => {
-  const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/utxo'
-  const header = {
-    headers: bitindexHeader()
-  }
-  let utxos
-  try {
-    let res = await fetch(url, header)
-    utxos = await res.json()
-    if (!utxos) {
-      utxos = []
-    }
-  } catch (e) {
-    throw new Error(e)
-  }
+// app.updateUtxos = async () => {
+//   // const url = app.rpc + '/api/v3/main/xpub/' + app.xPub() + '/utxo'
+//   // const header = {
+//   //   headers: bitindexHeader()
+//   // }
+//   // let utxos
+//   // try {
+//   //   let res = await fetch(url, header)
+//   //   utxos = await res.json()
+//   //   if (!utxos) {
+//   //     utxos = []
+//   //   }
+//   // } catch (e) {
+//   //   throw new Error(e)
+//   // }
 
-  if (utxos instanceof Array) {
-    utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
-      : ((a.satoshis < b.satoshis) ? -1
-        : 0))
-  }
-
-  localStorage.setItem(SatchelKeyUtxo, JSON.stringify(utxos))
-  return utxos
-}
+//   // if (utxos instanceof Array) {
+//   //   utxos.sort((a, b) => (a.satoshis > b.satoshis) ? 1
+//   //     : ((a.satoshis < b.satoshis) ? -1
+//   //       : 0))
+//   // }
+  
+//   return app.getU
+// }
 
 // queryPlanaria queries planaria
 app.queryPlanaria = async (q) => {
@@ -575,14 +610,11 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           // wait a second
           await sleep(1000)
 
+          // Temporary - Tell Allaboard to Update Balance
+          await app.updateStatus()
+
           // Get next address
           await app.next()
-
-          // Update Balance
-          await app.updateBalance()
-
-          // Update UTXOs
-          await app.updateUtxos()
 
           if (callback) {
             callback(tx)
@@ -604,14 +636,17 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
           // wait a second
           await sleep(1000)
 
+          // Temporary - Tell Allaboard to Update Balance
+          await app.updateStatus()
+
           // Get next address
           await app.next()
 
           // Update Balance
-          await app.updateBalance()
+          // await app.updateBalance()
 
           // Update UTXOs
-          await app.updateUtxos()
+          // await app.updateUtxos()
 
           if (callback) {
             callback(tx)
@@ -620,6 +655,25 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
       }
     }
   }
+}
+
+// ToDo - remove when allaboard will monitor chain and update cache without being kicked
+app.updateStatus = async () => {
+  if (!app.xPub()) { return [] }
+  let url = app.rpcXpub + '/xpub/update'
+
+  const data = {
+    xpub: app.xPub() 
+  }
+
+  let r = await fetch(url, {
+    credentials: 'same-origin', // 'include', default: 'omit'
+    method: 'POST',             // 'GET', 'PUT', 'DELETE', etc.
+    body: new URLSearchParams(data), // Use correct payload (matching 'Content-Type')
+    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+  })
+
+  return await r.json()
 }
 
 // estimateFee sets the estimated fee on a given tx
@@ -634,6 +688,7 @@ app.estimateFee = (tx) => {
 }
 
 // getHistory will return the history for the current wallet
+// Todo - allaboard xpub history
 app.getHistory = async () => {
   if (!app.xPub()) {
     return []
