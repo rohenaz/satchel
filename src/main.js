@@ -27,6 +27,7 @@ const qrCodeProvider = 'https://api.qrserver.com/v1/'
 const defaults = {
   fee: 500
 }
+
 // Initialize the application
 const app = {
   Message: Message,
@@ -35,40 +36,85 @@ const app = {
   feePerKb: feePerKb,
   mnemonic: Mnemonic,
   planariaApiKey: '',
-  planariaUrl: 'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/',
+  planariaUrl:
+    'https://genesis.bitdb.network/q/1FnauZ9aUH2Bex6JzdcV4eNX7oLSSEbxtN/',
   rpc: 'https://api.bitindex.network',
   rpcXpub: 'https://api.allaboardbitcoin.com',
   updateDebounce: 10000,
+  state: {},
+  persistState: updatedState => {
+    if (Object.keys(updatedState).length === 0) {
+      clearFromLocalStorage(SATCHEL_STORAGE_KEY)
+    } else {
+      persistToLocalStorage(SATCHEL_STORAGE_KEY, updatedState)
+    }
+  },
+  loadState: () => getFromLocalStorage(SATCHEL_STORAGE_KEY, {}),
 
   // This must be set to enable bitsocket
   bitsocketCallback: null,
-  bitsocketUrl: 'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/',
+  bitsocketUrl:
+    'https://chronos.bitdb.network/s/1P6o45vqLdo6X8HRCZk8XuDsniURmXqiXo/',
   debug: false,
   socket: null
 }
 
 // localStorage standard keys for satchel
-const SatchelKeyConfirmedBalance = 'satchel.confirmed-balance'
-const SatchelKeyMnemonic = 'satchel.mnemonic'
-const SatchelKeyNum = 'satchel.num'
-const SatchelKeyTimestamp = 'satchel.timestamp'
-const SatchelKeyUnConfirmedBalance = 'satchel.unconfirmed-balance'
-const SatchelKeyUtxo = 'satchel.utxo'
-const SatchelKeyXPriv = 'satchel.xpriv'
-const SatchelKeyXPub = 'satchel.xpub'
+const SATCHEL_STORAGE_KEY = 'satchel'
+const CONFIRMED_BALANCE_KEY = 'confirmedBalance'
+const MNEMONIC_KEY = 'mnemonic'
+const NUM_KEY = 'num'
+const TIMESTAMP_KEY = 'timestamp'
+const UNCONFIRMED_BALANCE_KEY = 'unconfirmedBalance'
+const UTXOS_KEY = 'utxos'
+const XPRIV_KEY = 'xpriv'
+const XPUB_KEY = 'xpub'
+
+// Persist data to localStorage
+const persistToLocalStorage = (storageKey, data) => {
+  if (window.localStorage) {
+    try {
+      window.localStorage.setItem(storageKey, JSON.stringify(data))
+    } catch (e) {
+      console.error('Failed saving data to LocalStorage')
+    }
+  }
+}
+
+// Clear data to localStorage
+const clearFromLocalStorage = storageKey => {
+  if (window.localStorage) {
+    try {
+      window.localStorage.clearItem(storageKey)
+    } catch (e) {
+      console.error('Failed clearing data from LocalStorage')
+    }
+  }
+}
+
+// Get data from localStorage
+const getFromLocalStorage = (storageKey, defaultData) => {
+  let data = defaultData
+  if (window.localStorage) {
+    try {
+      data = JSON.parse(window.localStorage.getItem(storageKey)) || defaultData
+    } catch (e) {
+      console.error('Failed to retrieve data to LocalStorage')
+    }
+  }
+  return data
+}
 
 // Sleep - promise with a setTimeout()
-const sleep = (ms) => {
+const sleep = ms => {
   return new Promise(resolve => setTimeout(resolve, ms))
 }
 
 // jsonHeader returns a header for JSON
-const jsonHeader = () => {
-  return {
-    accept: 'application/json',
-    'content-type': 'application/json'
-  }
-}
+const jsonHeader = () => ({
+  accept: 'application/json',
+  'content-type': 'application/json'
+})
 
 // bitindexHeader returns a header for bitindex with API key
 const bitindexHeader = () => {
@@ -78,20 +124,18 @@ const bitindexHeader = () => {
 }
 
 // sat2bsv converts satoshis to bitcoin
-app.sat2bsv = (sat) => sb.toBitcoin(sat)
+app.sat2bsv = sat => sb.toBitcoin(sat)
 
 // bsv2sat converts bitcoin to satoshis
-app.bsv2sat = (bsv) => sb.toSatoshi(bsv) | 0
+app.bsv2sat = bsv => sb.toSatoshi(bsv) | 0
 
-app.num = () => {
-  return localStorage.getItem(SatchelKeyNum) || 0
-}
+app.num = () => app.state[NUM_KEY] || 0
 
 // receiveAddressLink sets the link to view the address via explorer
-app.receiveAddressLink = (address) => explorerProvider + `/address/${address}`
+app.receiveAddressLink = address => explorerProvider + `/address/${address}`
 
 // txLink sets the tx explorer link
-app.txLink = (txid) => explorerProvider + `/tx/${txid}`
+app.txLink = txid => explorerProvider + `/tx/${txid}`
 
 // changeAddress returns a bsv.Address
 app.changeAddress = () => {
@@ -106,15 +150,13 @@ app.address = () => {
 }
 
 // balance returns the total balance (confirmed and unconfirmed)
-app.balance = () => {
-  return app.confirmedBalance() + app.unconfirmedBalance()
-}
+app.balance = () => app.confirmedBalance() + app.unconfirmedBalance()
 
 // confirmedBalance returns just the confirmed balance
-app.confirmedBalance = () => parseInt(localStorage.getItem(SatchelKeyConfirmedBalance) || 0)
+app.confirmedBalance = () => app.state[CONFIRMED_BALANCE_KEY] || 0
 
 // unconfirmedBalance returns just the unconfirmed balance
-app.unconfirmedBalance = () => parseInt(localStorage.getItem(SatchelKeyUnConfirmedBalance) || 0)
+app.unconfirmedBalance = () => app.state[UNCONFIRMED_BALANCE_KEY] || 0
 
 // hdPrivateKey gets a hd private key
 app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
@@ -123,16 +165,16 @@ app.hdPrivateKey = () => new bsv.HDPrivateKey.fromString(app.xPriv())
 app.hdPublicKey = () => new bsv.HDPrivateKey.fromString(app.xPub())
 
 // mnemonic returns the local mnemonic
-app.mnemonic = () => localStorage.getItem(SatchelKeyMnemonic)
+app.mnemonic = () => app.state[MNEMONIC_KEY]
 
 // timestamp returns the local stored timestamp
-app.timestamp = () => localStorage.getItem(SatchelKeyTimestamp)
+app.timestamp = () => app.state[TIMESTAMP_KEY]
 
 // xPriv returns the local stored xpriv
-app.xPriv = () => localStorage.getItem(SatchelKeyXPriv)
+app.xPriv = () => app.state[XPRIV_KEY]
 
 // xPub returns the local stored xpub
-app.xPub = () => localStorage.getItem(SatchelKeyXPub)
+app.xPub = () => app.state[XPUB_KEY]
 
 // privateKey returns the current private key
 app.privateKey = () => {
@@ -141,6 +183,7 @@ app.privateKey = () => {
 
   // If we don't have one, ask BitIndex
   if (!num || num.length === 0) {
+    // if (num == null || num === 0) {
     console.error('login first', num)
     throw new Error('login first')
   }
@@ -165,7 +208,7 @@ app.lookupPrivateKey = (chain, num) => {
 
 // utxos a wallet can have many utxos consume the top `max` utxos by value
 app.utxos = (max = 5) => {
-  let utxos = JSON.parse(localStorage.getItem(SatchelKeyUtxo) || '[]')
+  let utxos = app.state[UTXOS_KEY] || []
   utxos = utxos.map(utxo => {
     // remove when allaboard is bsv lib compliant :(
     if (!utxo.satoshis) {
@@ -178,18 +221,28 @@ app.utxos = (max = 5) => {
     return utxos
   }
 
-  return utxos.sort((a, b) => {
-    return a.satoshis > b.satoshis ? -1 : 1
-  }).slice(0, max)
+  return utxos
+    .sort((a, b) => {
+      return a.satoshis > b.satoshis ? -1 : 1
+    })
+    .slice(0, max)
 }
 
 // qrCode returns an svg qr code of current HD address
 app.qrCode = (size = 300, format = 'svg') => {
-  return qrCodeProvider + 'create-qr-code/?' +
+  return (
+    qrCodeProvider +
+    'create-qr-code/?' +
     '&qzone=1' +
-    '&data=' + satchel.address().toString() +
-    '&size=' + size + 'x' + size +
-    '&format=' + format
+    '&data=' +
+    satchel.address().toString() +
+    '&size=' +
+    size +
+    'x' +
+    size +
+    '&format=' +
+    format
+  )
 }
 
 // new generates a new mnemonic and logs in (english only for now)
@@ -202,26 +255,34 @@ app.new = async () => {
 
 // next calls next address BitIndex endpoint and set num and returns the full API response
 app.next = async () => {
-  if (!app.xPub()) { return [] }
+  if (!app.xPub()) {
+    return []
+  }
   let url = app.rpcXpub + '/xpub/status'
 
   const data = {
-    xpub: app.xPub() 
+    xpub: app.xPub()
   }
 
   // let r = await fetch(url, data, header)
+  let res
+  try {
+    let r = await fetch(url, {
+      credentials: 'same-origin', // 'include', default: 'omit'
+      method: 'POST', // 'GET', 'PUT', 'DELETE', etc.
+      body: new URLSearchParams(data), // Use correct payload (matching 'Content-Type')
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+      }
+    })
 
-  let r = await fetch(url, {
-    credentials: 'same-origin', // 'include', default: 'omit'
-    method: 'POST',             // 'GET', 'PUT', 'DELETE', etc.
-    body: new URLSearchParams(data), // Use correct payload (matching 'Content-Type')
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
-  })
+    res = await r.json()
 
-  let res = await r.json()
+  } catch (e) {
+    return e
+  }
 
   // todo: check the response and make sure its valid
-
 
   // if (res.utxos instanceof Array && res.length) {
   //   num = res.utxos.sort((a, b) => {
@@ -229,22 +290,29 @@ app.next = async () => {
   //   }).filter(a => { return a.chain === 0 })[0].num
   // }
 
-  localStorage.setItem(SatchelKeyConfirmedBalance, res.confirmed && res.confirmed.length ? res.confirmed : 0)
-  localStorage.setItem(SatchelKeyUnConfirmedBalance, res.unconfirmed && res.unconfirmed.length ? res.unconfirmed : 0)
-  localStorage.setItem(SatchelKeyUtxo, JSON.stringify(res.utxos))
-  localStorage.setItem(SatchelKeyNum, res.next_num.toString())
+  app.state[CONFIRMED_BALANCE_KEY] =
+    res.confirmed && res.confirmed.length ? parseInt(res.confirmed) : 0
+  app.state[UNCONFIRMED_BALANCE_KEY] =
+    res.unconfirmed && res.unconfirmed.length ? parseInt(res.unconfirmed) : 0
+  app.state[UTXOS_KEY] = res.utxos
+  // ToDo -= this really gotta be a string?
+  app.state[NUM_KEY] = res && res.next_num ? res.next_num.toString() : '0'
+  app.persistState(app.state)
+
   return res
 }
 
 // setMnemonicAnchor pass an element or querySelector to apply mnemonic download href and un-hide element
-app.setMnemonicAnchor = (a) => {
+app.setMnemonicAnchor = a => {
   let el
   if (typeof a === 'string') {
     el = document.querySelector(a)
   } else if (a instanceof HTMLAnchorElement) {
     el = a
   } else {
-    console.warn('invalid anchor. Must be a HTMLAnchorElement, or a string for document.querySelector()')
+    console.warn(
+      'invalid anchor. Must be a HTMLAnchorElement, or a string for document.querySelector()'
+    )
     return
   }
   if (!el) {
@@ -273,7 +341,7 @@ app.downloadHref = () => {
 }
 
 // login with xPriv or Mnemonic
-app.login = async (xprvOrMnemonic) => {
+app.login = async xprvOrMnemonic => {
   if (!xprvOrMnemonic) {
     throw new Error('Private key required')
   }
@@ -285,14 +353,20 @@ app.login = async (xprvOrMnemonic) => {
       throw new Error('Invalid mnemonic')
     }
     const importedMnemonic = Mnemonic.fromString(xprvOrMnemonic)
-    hdPrivateKey = bsv.HDPrivateKey.fromSeed(importedMnemonic.toSeed(), 'livenet')
-    localStorage.setItem(SatchelKeyMnemonic, xprvOrMnemonic)
+    hdPrivateKey = bsv.HDPrivateKey.fromSeed(
+      importedMnemonic.toSeed(),
+      'livenet'
+    )
+    app.state[MNEMONIC_KEY] = xprvOrMnemonic
   } else {
     hdPrivateKey = bsv.HDPrivateKey.fromString(xprvOrMnemonic)
   }
 
-  localStorage.setItem(SatchelKeyXPriv, hdPrivateKey.toString())
-  localStorage.setItem(SatchelKeyXPub, bsv.HDPublicKey.fromHDPrivateKey(hdPrivateKey).toString())
+  app.state[XPRIV_KEY] = hdPrivateKey.toString()
+  app.state[XPUB_KEY] = bsv.HDPublicKey.fromHDPrivateKey(
+    hdPrivateKey
+  ).toString()
+  app.persistState(app.state)
 
   await app.updateAll()
 
@@ -304,29 +378,22 @@ app.login = async (xprvOrMnemonic) => {
 // updateAll updates if app.timestamp is older than app.updateDebounce
 app.updateAll = async () => {
   let ts = app.timestamp()
-  if (!ts || (new Date().getTime() - parseInt(ts)) > app.updateDebounce) {
+  if (!ts || new Date().getTime() - parseInt(ts) > app.updateDebounce) {
+    // if (!ts || new Date().getTime() - ts > app.updateDebounce) {
     // Gets next key pair position so we can derive keys
-    localStorage.setItem(SatchelKeyTimestamp, new Date().getTime().toString())
+    app.state[TIMESTAMP_KEY] = new Date().getTime()
+    app.persistState(app.state)
+
     await app.next()
     // await app.updateBalance()
     // await app.updateUtxos()
   }
 }
 
-// logout clears keys from localStorage
 app.logout = () => {
-  // Find all keys
-  const localstorageKeys = []
-  for (let i = 0; i < localStorage.length; ++i) {
-    if (localStorage.key(i).substring(0, 7) === 'satchel') {
-      localstorageKeys.push(localStorage.key(i))
-    }
-  }
-
-  // Remove all keys
-  for (const k of localstorageKeys) {
-    localStorage.removeItem(k)
-  }
+  // Clear state
+  app.state = {}
+  app.persistState({})
 
   // Close any open sockets
   if (app.socket) {
@@ -401,7 +468,7 @@ app.send = async (address, satoshis) => {
 }
 
 // cleanTxDust cleans the tx dust
-app.cleanTxDust = (tx) => {
+app.cleanTxDust = tx => {
   for (let i = 0; i < tx.outputs.length; ++i) {
     if (tx.outputs[i]._satoshis > 0 && tx.outputs[i]._satoshis < dustLimit) {
       tx.outputs.splice(i, 1)
@@ -428,19 +495,24 @@ app.addOpReturnData = (tx, data) => {
     }
   }
 
-  tx.addOutput(new bsv.Transaction.Output({
-    script: script,
-    satoshis: 0
-  }))
+  tx.addOutput(
+    new bsv.Transaction.Output({
+      script: script,
+      satoshis: 0
+    })
+  )
 
   return tx
 }
 
 // broadcastTx broadcast the tx
-app.broadcastTx = async (tx, options = {
-  safe: true, // check serialization
-  testing: false // if true dont actually broadcast to network
-}) => {
+app.broadcastTx = async (
+  tx,
+  options = {
+    safe: true, // check serialization
+    testing: false // if true dont actually broadcast to network
+  }
+) => {
   let txData
   if (options.safe) {
     txData = tx.serialize()
@@ -488,7 +560,6 @@ app.updateBalance = async () => {
 
   // todo: check that we got the right values (confirmed, unconfirmed, etc)
 
-
   return app.balance()
 }
 
@@ -514,12 +585,12 @@ app.updateBalance = async () => {
 //   //     : ((a.satoshis < b.satoshis) ? -1
 //   //       : 0))
 //   // }
-  
+
 //   return app.getU
 // }
 
 // queryPlanaria queries planaria
-app.queryPlanaria = async (q) => {
+app.queryPlanaria = async q => {
   if (app.planariaApiKey === '') {
     throw new Error('planariaApiKey option not set')
   }
@@ -542,13 +613,13 @@ app.queryPlanaria = async (q) => {
 }
 
 // monitorAddressQuery Planarium + BitSocket queries for monitoring logged in address
-app.monitorAddressQuery = (addressList) => ({
+app.monitorAddressQuery = addressList => ({
   v: 3,
   q: {
     find: {
-      '$or': [
-        { 'in.e.a': { '$in': addressList } },
-        { 'out.e.a': { '$in': addressList } }
+      $or: [
+        { 'in.e.a': { $in: addressList } },
+        { 'out.e.a': { $in: addressList } }
       ]
     }
   }
@@ -559,10 +630,10 @@ app.txsQuery = (txList, limit, page = 1) => ({
   v: 3,
   q: {
     find: {
-      'tx.h': { '$in': txList }
+      'tx.h': { $in: txList }
     },
     limit: limit,
-    skip: ((page - 1) * limit)
+    skip: (page - 1) * limit
   }
 })
 
@@ -576,16 +647,24 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
     throw new Error('Error: bitsocketCallback is not defined')
   }
 
-  const q = app.monitorAddressQuery([app.address().toString(), app.changeAddress().toString()])
+  const q = app.monitorAddressQuery([
+    app.address().toString(),
+    app.changeAddress().toString()
+  ])
   const b64 = btoa(JSON.stringify(q))
   const url = app.bitsocketUrl + b64
 
   if (app.debug) {
-    console.info('Satchel: Initialized bitsocket listener. URL:', app.bitsocketUrl, 'query:', q)
+    console.info(
+      'Satchel: Initialized bitsocket listener. URL:',
+      app.bitsocketUrl,
+      'query:',
+      q
+    )
   }
 
   app.socket = new EventSource(url)
-  app.socket.onmessage = async (e) => {
+  app.socket.onmessage = async e => {
     let r = JSON.parse(e.data)
 
     if (app.debug) {
@@ -597,15 +676,18 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
       let sats = 0
 
       for (const input of tx.in) {
-        if (input.e.a === app.address().toString() ||
-          input.e.a === app.changeAddress().toString()) {
+        if (
+          input.e.a === app.address().toString() ||
+          input.e.a === app.changeAddress().toString()
+        ) {
           // handle outgoing tx
           sats += input.e.v
           let unconfirmedBalance = app.balance() - sats
 
-          // Set in local storage
-          localStorage.setItem(SatchelKeyConfirmedBalance, '0')
-          localStorage.setItem(SatchelKeyUnConfirmedBalance, unconfirmedBalance.toString())
+          // Persist
+          app.state[CONFIRMED_BALANCE_KEY] = 0
+          app.state[UNCONFIRMED_BALANCE_KEY] = unconfirmedBalance
+          app.persistState(app.state)
 
           // wait a second
           await sleep(1000)
@@ -624,14 +706,17 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
 
       sats = 0
       for (const out of tx.out) {
-        if (out.e.a === app.address().toString() ||
-          out.e.a === app.changeAddress().toString()) {
+        if (
+          out.e.a === app.address().toString() ||
+          out.e.a === app.changeAddress().toString()
+        ) {
           // handle incoming tx
           sats += out.e.v
           let unconfirmedBalance = app.unconfirmedBalance() + sats
 
-          // Set in local storage
-          localStorage.setItem(SatchelKeyUnConfirmedBalance, unconfirmedBalance.toString())
+          // Persist
+          app.state[UNCONFIRMED_BALANCE_KEY] = unconfirmedBalance
+          app.persistState(app.state)
 
           // wait a second
           await sleep(1000)
@@ -659,25 +744,29 @@ app.bitsocketListener = (callback = app.bitsocketCallback) => {
 
 // ToDo - remove when allaboard will monitor chain and update cache without being kicked
 app.updateStatus = async () => {
-  if (!app.xPub()) { return [] }
+  if (!app.xPub()) {
+    return []
+  }
   let url = app.rpcXpub + '/xpub/update'
 
   const data = {
-    xpub: app.xPub() 
+    xpub: app.xPub()
   }
 
   let r = await fetch(url, {
     credentials: 'same-origin', // 'include', default: 'omit'
-    method: 'POST',             // 'GET', 'PUT', 'DELETE', etc.
+    method: 'POST', // 'GET', 'PUT', 'DELETE', etc.
     body: new URLSearchParams(data), // Use correct payload (matching 'Content-Type')
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8' },
+    headers: {
+      'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8'
+    }
   })
 
   return await r.json()
 }
 
 // estimateFee sets the estimated fee on a given tx
-app.estimateFee = (tx) => {
+app.estimateFee = tx => {
   tx.fee(defaults.fee).change(app.changeAddress())
   if (options.pay && options.pay.fee) {
     tx.fee(options.pay.fee)
@@ -706,17 +795,23 @@ app.getHistory = async () => {
 
   // todo: error handling? make sure response is valid?
 
-  return app.queryPlanaria(app.txsQuery(res.map(record => {
-    return record.txid
-  })))
+  return app.queryPlanaria(
+    app.txsQuery(
+      res.map(record => {
+        return record.txid
+      })
+    )
+  )
 }
 
 // init starts the satchel application
 app.init = async (options = {}) => {
   // overwrite any variables in app passed from options
-  for (const o of Object.entries(options)) {
-    app[o[0]] = o[1]
+  for (const [key, value] of Object.entries(options)) {
+    app[key] = value
   }
+
+  app.state = app.loadState()
 
   try {
     if (app.isLoggedIn()) {
