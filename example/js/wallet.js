@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 let activeTx
 
 // defaultOpReturnData default op return data
-const defaultOpReturnData = ()  => {
+const defaultOpReturnData = () => {
   // let chain = 0
   // let num = 2
   // let pk = satchel.lookupPrivateKey(chain, num)
@@ -85,7 +85,6 @@ const makeTx = async () => {
   // create a new tx from your satchel with the data array as OP_RETURN data
   let tx = await satchel.newDataTx(JSON.parse(val))
 
-  
   // Update the UI
   document.getElementById('txHex').value = tx.toString()
 
@@ -98,7 +97,7 @@ const broadcast = async () => {
   let div = document.getElementById('successDiv')
   try {
     let tx = await satchel.broadcastTx(activeTx)
-    div.innerHTML = 'Success! <a href="' + 
+    div.innerHTML = 'Success! <a href="' +
       satchel.txLink(tx.txid) + '" target="_blank">' + tx.txid + '</a>'
   } catch (e) {
     console.error(e)
@@ -128,10 +127,9 @@ const getHistory = async () => {
 
 // walletLoaded creates new wallet if it doesn't exist, and loads address/balance etc
 const walletLoaded = async () => {
-
   // If you're not logged in, create a new HD private key
   if (!satchel.isLoggedIn()) {
-    await satchel.new() 
+    await satchel.new()
   }
 
   // Set the mnemonic anchor if found
